@@ -1,14 +1,13 @@
-# api-template-responder
+# api-file-provider
 
-## First thing to do
-The things you have to do after creating a repository based on this template are as follows:
-- Change `description` in `pyproject.toml` to the description of your API
-- Change `repository` in `pyproject.toml` to the newly created repository
-- Change `homepage` in `pyproject.toml` to your homepage
+An API for providing raw files so that users can download them
 
 ## How to build docker-image
 ```bash
-$ docker-compose build
+$ ssh-agent
+$ ssh-add
+$ export DOCKER_BUILDKIT=1
+$ docker built -t api-file-provider:latest . --ssh=default
 
 ```
 
@@ -18,5 +17,3 @@ Make sure to build the image first.
 $ docker-compose up
 
 ```
-
-You can update the behavior of your API by editing `api/server.py` while running the server

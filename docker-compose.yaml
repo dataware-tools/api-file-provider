@@ -2,12 +2,12 @@ version: '3.8'
 services:
     api:
         build: .
-        image: api:latest
-        container_name: api
+        image: api-file-provider:latest
+        container_name: api-file-provider
         environment:
           PORT: 8080
           SECRET_KEY: abcdef
-#          API_DEBUG: 'true'
+          API_DEBUG: 'true'
         volumes:
             - .:/opt/app:rw
         ports:
