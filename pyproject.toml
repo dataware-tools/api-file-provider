@@ -1,0 +1,33 @@
+[build-system]
+requires = ["poetry >= 0.12"]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry]
+name = "api"
+version = "0.1.0"
+description = "A Responder based API for dataware-tools"
+license = "Apache-2.0"
+authors = [
+    "Daiki Hayashi <hayashi.daiki@hdwlab.co.jp>"
+]
+readme = 'README.md'
+repository = "https://github.com/dataware-tools/api-template-responder.git"
+homepage = "https://github.com/dataware-tools/api-template-responder"
+keywords = ['template', 'dataware', 'api']
+classifiers=[
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+[tool.poetry.dependencies]
+python = ">=3.6.1"
+dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", branch = "master" }
+responder = "^2.0.5"
+
+[tool.poetry.dev-dependencies]
+flake8 = "^3.8.4"
+pytest = "^6.1.1"
+tox = "^3.20.0"

@@ -1,0 +1,16 @@
+name: hook github action in dataware-tools/web-deployment
+
+on: [push]
+
+jobs:
+  hook:
+    runs-on: ubuntu-18.04
+    timeout-minutes: 30
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repository: dataware-tools/web-deployment
+          event-type: build-and-deploy
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "repo_name": "${{ github.event.repository.name }}", "repo_full_name": "${{ github.event.repository.full_name }}"}'

@@ -1,0 +1,37 @@
+name: Build and test
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    timeout-minutes: 300
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build image
+        run: |
+          export DOCKER_BUILDKIT=1
+          docker build -t api:latest .
+
+      - name: Test image
+        run: |
+          docker run api:latest tox
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get -y install curl
+          VERSION=$(
+              curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | \
+              grep '"tag_name":' | \
+              sed -E 's/.*"v([^"]+)".*/\1/'
+          )
+
+          wget https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-64bit.tar.gz
+          tar zxvf trivy_${VERSION}_Linux-64bit.tar.gz
+          sudo mv trivy /usr/local/bin/
+
+      - name: Scan image
+        run: trivy --exit-code 0 --no-progress api:latest
+

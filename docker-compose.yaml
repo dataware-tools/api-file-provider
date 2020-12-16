@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+    api:
+        build: .
+        image: api:latest
+        container_name: api
+        environment:
+          PORT: 8080
+          SECRET_KEY: abcdef
+#          API_DEBUG: 'true'
+        volumes:
+            - .:/opt/app:rw
+        ports:
+            - 8080:8080
+        working_dir: /opt/app
+        command: python api/server.py
+        tty: true
