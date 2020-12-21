@@ -50,7 +50,7 @@ api = responder.API(
 jwt_key = hashlib.sha256(
     api.secret_key.encode('utf-8') if isinstance(api.secret_key, str) else api.secret_key
 ).hexdigest()
-catalogs = get_catalogs()
+catalogs = {}
 debug = False
 
 
@@ -258,5 +258,6 @@ if __name__ == '__main__':
     debug = os.environ.get('API_DEBUG', '') in ['true', 'True', 'TRUE', '1']
     print('Debug: {}'.format(debug))
     debug = debug
+    catalogs = get_catalogs()
     regenerate_jwt_key()
     api.run(debug=debug)
