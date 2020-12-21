@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import time
+import threading
 
 import jwt
 import responder
@@ -75,20 +76,6 @@ def echo(_, resp, *, content, resp_type):
 @api.route('/healthz')
 def healthz(_, resp):
     resp.text = 'ok'
-
-
-@api.background.task
-def regenerate_jwt_key():
-    """Re-generate JWT key."""
-    global jwt_key
-    key = api.secret_key + datetime.now().strftime('%s')
-    jwt_key = hashlib.sha256(
-        key.encode('utf-8') if isinstance(key, str) else key
-    ).hexdigest()
-    print('JWT key has been regenerated')
-    time.sleep(int(os.environ.get('JWT_LIFETIME', '3600')))
-
-    regenerate_jwt_key()
 
 
 @api.route('/download')
@@ -175,9 +162,16 @@ class Download:
             return
 
         # Prepare headers
+        resp.headers['Content-Transfer-Encoding'] = 'Binary'
         if payload.get('content_type', None) is not None:
             resp.headers['Content-Type'] = payload.get('content_type')
         if payload.get('path', None) is not None:
+            try:
+                filesize = os.path.getsize(payload.get('path'))
+                resp.headers['Content-Length'] = str(filesize)
+            except Exception as e:
+                print(e)
+                pass
             resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(
                 os.path.basename(payload.get('path'))
             )
@@ -258,10 +252,38 @@ def _get_content_type(req, database_id, record_id, path):
         return None
 
 
+def regenerate_jwt_key(postfix: str = ''):
+    """Re-generate JWT key.
+
+    Args:
+        postfix (str): String to append to the key.
+
+    """
+    global jwt_key
+    key = api.secret_key + postfix
+    jwt_key = hashlib.sha256(
+        key.encode('utf-8') if isinstance(key, str) else key
+    ).hexdigest()
+    print('JWT key has been regenerated')
+
+
+def _key_update_daemon():
+    t = threading.currentThread()
+    prev_postfix = ''
+    while not getattr(t, "kill", False):
+        postfix = str(datetime.now().strftime('%Y-%m-%d'))
+        if postfix != prev_postfix:
+            regenerate_jwt_key(postfix)
+            prev_postfix = postfix
+        time.sleep(1)
+
+
 if __name__ == '__main__':
     debug = os.environ.get('API_DEBUG', '') in ['true', 'True', 'TRUE', '1']
     print('Debug: {}'.format(debug))
     debug = debug
     catalogs = get_catalogs()
-    regenerate_jwt_key()
+    daemon = threading.Thread(target=_key_update_daemon)
+    daemon.start()
+
     api.run(debug=debug)
