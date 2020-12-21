@@ -131,9 +131,13 @@ class Downloads:
         })
         token = jwt.encode(payload, jwt_key, algorithm='HS256')
 
+        # Convert to str
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+
         # Returns
         resp.media = {
-            'token': token.decode('utf-8')
+            'token': token
         }
 
 
@@ -154,7 +158,9 @@ class Download:
         """
         # Decode payload
         try:
-            payload = jwt.decode(token.encode('utf-8'), jwt_key, algorithm='HS256')
+            if isinstance(token, str):
+                token = token.encode('utf-8')
+            payload = jwt.decode(token, jwt_key, algorithm='HS256')
         except jwt.ExpiredSignatureError:
             resp.status_code = 403
             resp.media = {'reason': 'JWT expired'}
