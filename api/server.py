@@ -47,7 +47,9 @@ api = responder.API(
     },
     secret_key=os.environ.get('SECRET_KEY', os.urandom(12))
 )
-jwt_key = hashlib.sha256(api.secret_key.encode('utf-8')).hexdigest()
+jwt_key = hashlib.sha256(
+    api.secret_key.encode('utf-8') if isinstance(api.secret_key, str) else api.secret_key
+).hexdigest()
 catalogs = get_catalogs()
 debug = False
 
@@ -80,7 +82,9 @@ def regenerate_jwt_key():
     """Re-generate JWT key."""
     global jwt_key
     key = api.secret_key + datetime.now().strftime('%s')
-    jwt_key = hashlib.sha256(key.encode('utf-8')).hexdigest()
+    jwt_key = hashlib.sha256(
+        key.encode('utf-8') if isinstance(key, str) else key
+    ).hexdigest()
     print('JWT key has been regenerated')
     time.sleep(int(os.environ.get('JWT_LIFETIME', '3600')))
 
