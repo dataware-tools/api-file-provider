@@ -178,7 +178,7 @@ class Download:
         if payload.get('content_type', None) is not None:
             resp.headers['Content-Type'] = payload.get('content_type')
         if payload.get('path', None) is not None:
-            resp.headers['Content-Description'] = 'attachment; filename="{}"'.format(
+            resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(
                 os.path.basename(payload.get('path'))
             )
 
