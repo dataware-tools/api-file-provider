@@ -51,3 +51,44 @@ def test_file_get_404(api):
     r = api.requests.get(url=api.url_for(server.get_file),
                          params={'path': 'a-file-that-does-not-exist'})
     assert r.status_code == 404
+
+
+@pytest.mark.parametrize("file_path, content_type", file_pathes)
+def test_download_200(api, file_path, content_type):
+    params = {'path': file_path}
+    if content_type is not None:
+        params.update({'content_type': content_type})
+    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'token' in data.keys()
+
+    # Get file with the token
+    r = api.requests.get(url=api.url_for(server.Download, token=data['token']))
+    if content_type is not None:
+        assert r.headers['Content-Type'] == content_type
+    with open(file_path, 'rb') as f:
+        assert r.content == f.read()
+
+
+def test_downloads_404(api):
+    r = api.requests.post(url=api.url_for(server.Downloads),
+                          data={'path': 'a-file-that-does-not-exist'})
+    assert r.status_code == 404
+
+
+@pytest.mark.parametrize("file_path, content_type", file_pathes)
+def test_download_403(api, file_path, content_type):
+    params = {'path': file_path}
+    if content_type is not None:
+        params.update({'content_type': content_type})
+    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'token' in data.keys()
+
+    token = data['token'] + 'aaaaaaa'
+
+    # Get file with the token
+    r = api.requests.get(url=api.url_for(server.Download, token=token))
+    assert r.status_code == 403
