@@ -3,6 +3,7 @@
 """Test code."""
 
 import json
+import os
 import pytest
 
 from api import server
@@ -67,6 +68,7 @@ def test_download_200(api, file_path, content_type):
     r = api.requests.get(url=api.url_for(server.Download, token=data['token']))
     if content_type is not None:
         assert r.headers['Content-Type'] == content_type
+    assert os.path.basename(file_path) in r.headers['Content-Description']
     with open(file_path, 'rb') as f:
         assert r.content == f.read()
 

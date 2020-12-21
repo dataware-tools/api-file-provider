@@ -177,6 +177,10 @@ class Download:
         # Prepare headers
         if payload.get('content_type', None) is not None:
             resp.headers['Content-Type'] = payload.get('content_type')
+        if payload.get('path', None) is not None:
+            resp.headers['Content-Description'] = 'attachment; filename="{}"'.format(
+                os.path.basename(payload.get('path'))
+            )
 
         # Check file
         if not os.path.isfile(payload.get('path')):
