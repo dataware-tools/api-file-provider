@@ -186,6 +186,27 @@ class Download:
         resp.stream(_shout_stream, payload.get('path'))
 
 
+@api.route('/upload/')
+class Upload:
+    async def on_post(self, req, resp):
+
+        @api.background.task
+        def save_file(dir_path, data):
+            file = data['file']
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+            f = open(f'{dir_path}/{file["filename"]}', 'wb')
+            f.write(file['content'])
+            f.close()
+
+        data = await req.media(format='files')
+        dir_path = req.params["dir_path"]
+        save_file(dir_path, data)
+
+        resp.status_code = 201
+        return
+
+
 @api.route('/file')
 async def get_file(req, resp):
     """Return the corresponding file.
