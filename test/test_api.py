@@ -80,10 +80,24 @@ def test_downloads_404(api):
 
 
 def test_upload_201(api):
-    files = {'file': ('test.txt', open('test/files/text.txt', 'rb'), "anything")}
+    file_path = 'test/files/text.txt'
+    files = {'file': ('test.txt', open(file_path, 'rb'), "anything")}
     url = api.url_for(server.Upload)
     r = api.requests.post(url=url, files=files, params={"dir_path": "/tmp/test"})
     assert r.status_code == 201
+
+    # Download token for uploaded file
+    params = {'path': '/tmp/test/test.txt'}
+    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'token' in data.keys()
+
+    # Get file with the token
+    r = api.requests.get(url=api.url_for(server.Download, token=data['token']))
+    assert r.status_code == 200
+    with open(file_path, 'rb') as f:
+        assert r.content == f.read()
 
 
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
