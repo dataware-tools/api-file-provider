@@ -191,7 +191,7 @@ class Download:
 class Upload:
     async def on_post(self, req, resp):
 
-        # @api.background.task
+        @api.background.task
         def save_file(save_file_path, file):
             # Create directory if not exist
             dir_path = os.path.dirname(save_file_path)
@@ -213,6 +213,9 @@ class Upload:
             file['filename'],
         )
         save_file(save_file_path, file)
+
+        # TODO: Get metadata of the record from pydtk
+        # TODO: Add data to pydtk
 
         resp.status_code = 201
         return

@@ -5,6 +5,7 @@
 import json
 import os
 import pytest
+import time
 
 from api import server
 from api.settings import UPLOADED_FILE_PATH_PREFIX
@@ -86,6 +87,8 @@ def test_upload_201(api):
     url = api.url_for(server.Upload)
     r = api.requests.post(url=url, files=files, params={'record_id': 'test_record', 'database_id': 'test_database'})
     assert r.status_code == 201
+
+    time.sleep(0.5)
 
     # Download token for uploaded file
     params = {'path': f'{UPLOADED_FILE_PATH_PREFIX}/database_test_database/record_test_record/test.txt'}
