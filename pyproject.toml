@@ -23,9 +23,10 @@ classifiers=[
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.6.1"
+python = "^3.8"
 dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", branch = "master" }
 responder = "^2.0.5"
+pydtk = {git = "https://github.com/dataware-tools/pydtk.git", rev = "master", extras=["ros", "mongodb"]}
 PyJWT = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
