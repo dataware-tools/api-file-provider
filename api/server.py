@@ -17,6 +17,7 @@ from urllib.parse import quote
 from dataware_tools_api_helper import get_jwt_payload_from_request
 from dataware_tools_api_helper import get_catalogs
 from dataware_tools_api_helper import get_forward_headers
+from api.settings import UPLOADED_FILE_PATH_PREFIX
 
 # Metadata
 description = "An API for downloading files."
@@ -184,6 +185,40 @@ class Download:
 
         # Stream the file
         resp.stream(_shout_stream, payload.get('path'))
+
+
+@api.route('/upload/')
+class Upload:
+    async def on_post(self, req, resp):
+
+        @api.background.task
+        def save_file(save_file_path, file):
+            # Create directory if not exist
+            dir_path = os.path.dirname(save_file_path)
+            os.makedirs(dir_path, exist_ok=True)
+
+            # Save file
+            with open(save_file_path, 'wb') as f:
+                f.write(file['content'])
+
+        data = await req.media(format='files')
+        file = data['file']
+        database_id = req.params.get('database_id', '')
+        record_id = req.params.get('record_id', '')
+
+        save_file_path = os.path.join(
+            UPLOADED_FILE_PATH_PREFIX,
+            f'database_{database_id}',
+            f'record_{record_id}',
+            file['filename'],
+        )
+        save_file(save_file_path, file)
+
+        # TODO: Get metadata of the record from pydtk
+        # TODO: Add data to pydtk
+
+        resp.status_code = 201
+        return
 
 
 @api.route('/file')

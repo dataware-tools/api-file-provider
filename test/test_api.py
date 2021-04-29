@@ -5,8 +5,10 @@
 import json
 import os
 import pytest
+import time
 
 from api import server
+from api.settings import UPLOADED_FILE_PATH_PREFIX
 
 
 @pytest.fixture
@@ -77,6 +79,29 @@ def test_downloads_404(api):
     r = api.requests.post(url=api.url_for(server.Downloads),
                           data={'path': 'a-file-that-does-not-exist'})
     assert r.status_code == 404
+
+
+def test_upload_201(api):
+    file_path = 'test/files/text.txt'
+    files = {'file': ('test.txt', open(file_path, 'rb'), "anything")}
+    url = api.url_for(server.Upload)
+    r = api.requests.post(url=url, files=files, params={'record_id': 'test_record', 'database_id': 'test_database'})
+    assert r.status_code == 201
+
+    time.sleep(0.5)
+
+    # Download token for uploaded file
+    params = {'path': f'{UPLOADED_FILE_PATH_PREFIX}/database_test_database/record_test_record/test.txt'}
+    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'token' in data.keys()
+
+    # Get file with the token
+    r = api.requests.get(url=api.url_for(server.Download, token=data['token']))
+    assert r.status_code == 200
+    with open(file_path, 'rb') as f:
+        assert r.content == f.read()
 
 
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
