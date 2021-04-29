@@ -17,6 +17,7 @@ from urllib.parse import quote
 from dataware_tools_api_helper import get_jwt_payload_from_request
 from dataware_tools_api_helper import get_catalogs
 from dataware_tools_api_helper import get_forward_headers
+from api.settings import UPLOADED_FILE_PATH_PREFIX
 
 # Metadata
 description = "An API for downloading files."
@@ -190,18 +191,28 @@ class Download:
 class Upload:
     async def on_post(self, req, resp):
 
-        @api.background.task
-        def save_file(dir_path, data):
-            file = data['file']
-            if not os.path.exists(dir_path):
-                os.makedirs(dir_path)
-            f = open(f'{dir_path}/{file["filename"]}', 'wb')
-            f.write(file['content'])
-            f.close()
+        # @api.background.task
+        def save_file(save_file_path, file):
+            # Create directory if not exist
+            dir_path = os.path.dirname(save_file_path)
+            os.makedirs(dir_path, exist_ok=True)
+
+            # Save file
+            with open(save_file_path, 'wb') as f:
+                f.write(file['content'])
 
         data = await req.media(format='files')
-        dir_path = req.params["dir_path"]
-        save_file(dir_path, data)
+        file = data['file']
+        database_id = req.params.get('database_id', '')
+        record_id = req.params.get('record_id', '')
+
+        save_file_path = os.path.join(
+            UPLOADED_FILE_PATH_PREFIX,
+            f'database_{database_id}',
+            f'record_{record_id}',
+            file['filename'],
+        )
+        save_file(save_file_path, file)
 
         resp.status_code = 201
         return

@@ -7,6 +7,7 @@ import os
 import pytest
 
 from api import server
+from api.settings import UPLOADED_FILE_PATH_PREFIX
 
 
 @pytest.fixture
@@ -83,11 +84,11 @@ def test_upload_201(api):
     file_path = 'test/files/text.txt'
     files = {'file': ('test.txt', open(file_path, 'rb'), "anything")}
     url = api.url_for(server.Upload)
-    r = api.requests.post(url=url, files=files, params={"dir_path": "/tmp/test"})
+    r = api.requests.post(url=url, files=files, params={'record_id': 'test_record', 'database_id': 'test_database'})
     assert r.status_code == 201
 
     # Download token for uploaded file
-    params = {'path': '/tmp/test/test.txt'}
+    params = {'path': f'{UPLOADED_FILE_PATH_PREFIX}/database_test_database/record_test_record/test.txt'}
     r = api.requests.post(url=api.url_for(server.Downloads), data=params)
     assert r.status_code == 200
     data = json.loads(r.text)
