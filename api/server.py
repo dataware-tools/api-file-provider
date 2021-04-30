@@ -17,6 +17,8 @@ from urllib.parse import quote
 from dataware_tools_api_helper import get_jwt_payload_from_request
 from dataware_tools_api_helper import get_catalogs
 from dataware_tools_api_helper import get_forward_headers
+from pydtk.db import V4DBHandler as DBHandler
+
 from api.settings import UPLOADED_FILE_PATH_PREFIX
 
 # Metadata
@@ -214,7 +216,17 @@ class Upload:
         )
         save_file(save_file_path, file)
 
-        # TODO: Get metadata of the record from pydtk
+        # Get data of the same record from pydtk
+        handler = DBHandler(
+            db_class='meta',
+        )
+        handler.read(pql=f'record_id == "{record_id}" and database_id == "{database_id}"')
+        # Return 404 if the record does not exist
+        if len(handler.data) == 0:
+            resp.status_code = 404
+            resp.media = {'reason': f'No file found for database_id={database_id} and record_id={record_id}'}
+            return
+
         # TODO: Add data to pydtk
 
         resp.status_code = 201

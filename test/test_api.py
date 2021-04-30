@@ -85,7 +85,8 @@ def test_upload_201(api):
     file_path = 'test/files/text.txt'
     files = {'file': ('test.txt', open(file_path, 'rb'), "anything")}
     url = api.url_for(server.Upload)
-    r = api.requests.post(url=url, files=files, params={'record_id': 'test_record', 'database_id': 'test_database'})
+    params = {'record_id': '016_00000000030000000240', 'database_id': 'Driving Behavior Database'}
+    r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 201
 
     time.sleep(0.5)
@@ -102,6 +103,24 @@ def test_upload_201(api):
     assert r.status_code == 200
     with open(file_path, 'rb') as f:
         assert r.content == f.read()
+
+
+def test_upload_database_404(api):
+    file_path = 'test/files/text.txt'
+    files = {'file': ('test.txt', open(file_path, 'rb'), "anything")}
+    url = api.url_for(server.Upload)
+    params = {'record_id': '016_00000000030000000240', 'database_id': 'database that does not exist'}
+    r = api.requests.post(url=url, files=files, params=params)
+    assert r.status_code == 404
+
+
+def test_upload_record_404(api):
+    file_path = 'test/files/text.txt'
+    files = {'file': ('test.txt', open(file_path, 'rb'), "anything")}
+    url = api.url_for(server.Upload)
+    params = {'record_id': 'record that does not exist', 'database_id': 'Driving Behavior Database'}
+    r = api.requests.post(url=url, files=files, params=params)
+    assert r.status_code == 404
 
 
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
