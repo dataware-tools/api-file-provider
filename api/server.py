@@ -20,6 +20,7 @@ from dataware_tools_api_helper import get_forward_headers
 from pydtk.db import V4DBHandler as DBHandler
 
 from api.settings import UPLOADED_FILE_PATH_PREFIX
+from api.utils import get_valid_filename
 
 # Metadata
 description = "An API for downloading files."
@@ -210,8 +211,8 @@ class Upload:
 
         save_file_path = os.path.join(
             UPLOADED_FILE_PATH_PREFIX,
-            f'database_{database_id}',
-            f'record_{record_id}',
+            f'database_{get_valid_filename(database_id)}',
+            f'record_{get_valid_filename(record_id)}',
             file['filename'],
         )
         save_file(save_file_path, file)
@@ -230,6 +231,9 @@ class Upload:
         # TODO: Add data to pydtk
 
         resp.status_code = 201
+        resp.media = {
+            'save_file_path': save_file_path,
+        }
         return
 
 

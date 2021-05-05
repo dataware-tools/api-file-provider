@@ -88,11 +88,13 @@ def test_upload_201(api):
     params = {'record_id': '016_00000000030000000240', 'database_id': 'Driving Behavior Database'}
     r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 201
+    data = json.loads(r.text)
+    assert 'save_file_path' in data.keys()
 
     time.sleep(0.5)
 
     # Download token for uploaded file
-    params = {'path': f'{UPLOADED_FILE_PATH_PREFIX}/database_test_database/record_test_record/test.txt'}
+    params = {'path': data['save_file_path']}
     r = api.requests.post(url=api.url_for(server.Downloads), data=params)
     assert r.status_code == 200
     data = json.loads(r.text)
