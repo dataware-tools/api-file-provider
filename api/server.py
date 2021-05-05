@@ -215,7 +215,6 @@ class Upload:
             f'record_{get_valid_filename(record_id)}',
             file['filename'],
         )
-        save_file(save_file_path, file)
 
         # Get data of the same record from pydtk
         handler = DBHandler(
@@ -228,7 +227,20 @@ class Upload:
             resp.media = {'reason': f'No file found for database_id={database_id} and record_id={record_id}'}
             return
 
-        # TODO: Add data to pydtk
+        # Add data to pydtk
+        existing_data = next(handler)
+        data_to_add_to_pydtk = {
+            'description': existing_data['description'],
+            'database_id': existing_data['database_id'],
+            'record_id': existing_data['record_id'],
+            # TODO: Add sub_record_id?
+            # TODO: Add datatype and other metadata?
+            'path': save_file_path,
+        }
+        handler.add_data(data_to_add_to_pydtk)
+        handler.save()
+
+        save_file(save_file_path, file)
 
         resp.status_code = 201
         resp.media = {

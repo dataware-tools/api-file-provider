@@ -7,6 +7,8 @@ import os
 import pytest
 import time
 
+from pydtk.db import V4DBHandler as DBHandler
+
 from api import server
 from api.settings import UPLOADED_FILE_PATH_PREFIX
 
@@ -85,16 +87,19 @@ def test_upload_201(api):
     file_path = 'test/files/text.txt'
     files = {'file': ('test.txt', open(file_path, 'rb'), "anything")}
     url = api.url_for(server.Upload)
-    params = {'record_id': '016_00000000030000000240', 'database_id': 'Driving Behavior Database'}
+    record_id = '016_00000000030000000240'
+    database_id = 'Driving Behavior Database'
+    params = {'record_id': record_id, 'database_id': database_id}
     r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 201
     data = json.loads(r.text)
     assert 'save_file_path' in data.keys()
+    save_file_path = data['save_file_path']
 
     time.sleep(0.5)
 
     # Download token for uploaded file
-    params = {'path': data['save_file_path']}
+    params = {'path': save_file_path}
     r = api.requests.post(url=api.url_for(server.Downloads), data=params)
     assert r.status_code == 200
     data = json.loads(r.text)
@@ -105,6 +110,16 @@ def test_upload_201(api):
     assert r.status_code == 200
     with open(file_path, 'rb') as f:
         assert r.content == f.read()
+
+    # Check if metadata saved in pydtk
+    handler = DBHandler(
+        db_class='meta',
+    )
+    handler.read(pql=f'path == regex(".*/{os.path.basename(save_file_path)}")')
+    match_data = next(handler)
+    assert match_data['path'] == save_file_path
+    assert match_data['record_id'] == record_id
+    assert match_data['database_id'] == database_id
 
 
 def test_upload_database_404(api):
