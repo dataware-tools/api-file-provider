@@ -208,6 +208,7 @@ class Upload:
         file = data['file']
         database_id = req.params.get('database_id', '')
         record_id = req.params.get('record_id', '')
+        # TODO: Get file metadata
 
         save_file_path = os.path.join(
             UPLOADED_FILE_PATH_PREFIX,
@@ -227,16 +228,14 @@ class Upload:
             resp.media = {'reason': f'No file found for database_id={database_id} and record_id={record_id}'}
             return
 
-        # Add data to pydtk
+        # Get existing data in the same database and record
         existing_data = next(handler)
-        data_to_add_to_pydtk = {
-            'description': existing_data['description'],
-            'database_id': existing_data['database_id'],
-            'record_id': existing_data['record_id'],
-            # TODO: Add sub_record_id?
-            # TODO: Add datatype and other metadata?
-            'path': save_file_path,
-        }
+        # Remove columns that start with "_"
+        data_to_add_to_pydtk = {k: v for k, v in existing_data.items() if not (type(k) == str and k[0] == '_')}
+        # Update path
+        data_to_add_to_pydtk['path'] = save_file_path
+        # TODO: Update file metadata
+        # Add data to pydtk
         handler.add_data(data_to_add_to_pydtk)
         handler.save()
 
