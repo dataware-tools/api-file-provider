@@ -208,7 +208,7 @@ class Upload:
         file = data['file']
         database_id = req.params.get('database_id', '')
         record_id = req.params.get('record_id', '')
-        # TODO: Get file metadata
+        file_metadata = json.loads(req.params.get('file_metadata', '{}'))
 
         save_file_path = os.path.join(
             UPLOADED_FILE_PATH_PREFIX,
@@ -234,7 +234,8 @@ class Upload:
         data_to_add_to_pydtk = {k: v for k, v in existing_data.items() if not (type(k) == str and k[0] == '_')}
         # Update path
         data_to_add_to_pydtk['path'] = save_file_path
-        # TODO: Update file metadata
+        # Update file metadata
+        data_to_add_to_pydtk.update(file_metadata)
         # Add data to pydtk
         handler.add_data(data_to_add_to_pydtk)
         handler.save()

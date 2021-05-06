@@ -89,7 +89,17 @@ def test_upload_201(api):
     url = api.url_for(server.Upload)
     record_id = '016_00000000030000000240'
     database_id = 'Driving Behavior Database'
-    params = {'record_id': record_id, 'database_id': database_id}
+    file_metadata = {
+        'file_metadata_string': 'string_data',
+        'file_metadata_int': 10,
+        'file_medadata_dict': {'key1': 'value1', 'key2': 'value2'},
+        'file_medadata_list': [1, 2, 3],
+    }
+    params = {
+        'record_id': record_id,
+        'database_id': database_id,
+        'file_metadata': json.dumps(file_metadata),
+    }
     r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 201
     data = json.loads(r.text)
@@ -120,6 +130,10 @@ def test_upload_201(api):
     assert match_data['path'] == save_file_path
     assert match_data['record_id'] == record_id
     assert match_data['database_id'] == database_id
+    assert match_data['file_metadata_string'] == 'string_data'
+    assert match_data['file_metadata_int'] == 10
+    assert match_data['file_medadata_dict'] == {'key1': 'value1', 'key2': 'value2'}
+    assert match_data['file_medadata_list'] == [1, 2, 3]
 
 
 def test_upload_database_404(api):
