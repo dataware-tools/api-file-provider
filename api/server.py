@@ -219,6 +219,9 @@ class Upload:
         # TODO: Add data to pydtk
 
         resp.status_code = 201
+        resp.media = {
+            'save_file_path': save_file_path,
+        }
         return
 
 
