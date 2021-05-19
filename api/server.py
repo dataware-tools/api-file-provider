@@ -18,6 +18,7 @@ from dataware_tools_api_helper import get_jwt_payload_from_request
 from dataware_tools_api_helper import get_catalogs
 from dataware_tools_api_helper import get_forward_headers
 from api.settings import UPLOADED_FILE_PATH_PREFIX
+from api.utils import get_valid_filename
 
 # Metadata
 description = "An API for downloading files."
@@ -208,8 +209,8 @@ class Upload:
 
         save_file_path = os.path.join(
             UPLOADED_FILE_PATH_PREFIX,
-            f'database_{database_id}',
-            f'record_{record_id}',
+            f'database_{get_valid_filename(database_id)}',
+            f'record_{get_valid_filename(record_id)}',
             file['filename'],
         )
         save_file(save_file_path, file)
