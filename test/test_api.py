@@ -81,17 +81,30 @@ def test_downloads_404(api):
     assert r.status_code == 404
 
 
-def test_upload_201(api):
+def test_upload_201_file_uploaded_properly(api):
     file_path = 'test/files/text.txt'
-    files = {'file': ('test.txt', open(file_path, 'rb'), "anything")}
+    file_metadata = {}
+    files = {
+        'file': ('test.txt', open(file_path, 'rb'), 'anything'),
+        'contents': (None, json.dumps(file_metadata), 'application/json'),
+    }
     url = api.url_for(server.Upload)
-    r = api.requests.post(url=url, files=files, params={'record_id': 'test_record', 'database_id': 'test_database'})
+    record_id = 'test_record'
+    database_id = 'test_database'
+    params = {
+        'record_id': record_id,
+        'database_id': database_id,
+    }
+    r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 201
+    data = json.loads(r.text)
+    assert 'save_file_path' in data.keys()
+    save_file_path = data['save_file_path']
 
     time.sleep(0.5)
 
     # Download token for uploaded file
-    params = {'path': f'{UPLOADED_FILE_PATH_PREFIX}/database_test_database/record_test_record/test.txt'}
+    params = {'path': save_file_path}
     r = api.requests.post(url=api.url_for(server.Downloads), data=params)
     assert r.status_code == 200
     data = json.loads(r.text)
@@ -102,6 +115,39 @@ def test_upload_201(api):
     assert r.status_code == 200
     with open(file_path, 'rb') as f:
         assert r.content == f.read()
+
+
+def test_upload_201_metadata_updated_properly(api):
+    file_path = 'test/files/text.txt'
+    file_metadata = {
+        'file_metadata_string': 'string_data',
+        'file_metadata_int': 10,
+        'file_medadata_dict': {'key1': 'value1', 'key2': 'value2'},
+        'file_medadata_list': [1, 2, 3],
+    }
+    files = {
+        'file': ('test.txt', open(file_path, 'rb'), 'anything'),
+        # Add json file for metadata contents
+        # Reference:
+        # - https://stackoverflow.com/a/35940980
+        # - How to request in JS: https://stackoverflow.com/a/50774380
+        'contents': (None, json.dumps(file_metadata), 'application/json'),
+    }
+    url = api.url_for(server.Upload)
+    record_id = 'test_record'
+    database_id = 'test_database'
+    params = {
+        'record_id': record_id,
+        'database_id': database_id,
+    }
+    r = api.requests.post(url=url, files=files, params=params)
+    assert r.status_code == 201
+
+    # TODO: Check file metadata updated in meta-store
+    assert False
+
+
+# TODO: Add 404 tests
 
 
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
