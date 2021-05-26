@@ -5,15 +5,41 @@
 import json
 import os
 import pytest
+import requests
 import time
+from urllib.parse import quote
 
 from api import server
-from api.settings import UPLOADED_FILE_PATH_PREFIX
+from api.settings import (
+    UPLOADED_FILE_PATH_PREFIX,
+    METASTORE_DEV_SERVICE,
+)
+API_TOKEN = os.environ.get('API_TOKEN', None)
+skip_if_token_unset = pytest.mark.skipif(
+    not API_TOKEN,
+    reason="Requires API_TOKEN environment set",
+)
+AUTH_HEADERS = {'authorization': f'Bearer {API_TOKEN}'}
 
 
 @pytest.fixture
 def api():
     return server.api
+
+
+@pytest.fixture
+def setup_metastore_data():
+    """Setup data for testing at metaStore."""
+    database_id = 'database_for_testing_api_file_provider'
+    record_id = 'record_for_testing_api_file_provider'
+    # Add database
+    requests.post(url=f'{METASTORE_DEV_SERVICE}/databases', headers=AUTH_HEADERS, json={'database_id': database_id})
+    requests.post(url=f'{METASTORE_DEV_SERVICE}/records', headers=AUTH_HEADERS, json={'record_id': record_id})
+    yield {'database_id': database_id, 'record_id': record_id}
+
+    # Finalizer
+    requests.delete(url=f'{METASTORE_DEV_SERVICE}/databases/{database_id}', headers=AUTH_HEADERS)
+    requests.delete(url=f'{METASTORE_DEV_SERVICE}/records/{record_id}', headers=AUTH_HEADERS)
 
 
 def test_healthz(api):
@@ -81,6 +107,7 @@ def test_downloads_404(api):
     assert r.status_code == 404
 
 
+# TODO: Skip updating meta-store on test below
 def test_upload_201_file_uploaded_properly(api):
     file_path = 'test/files/text.txt'
     file_metadata = {}
@@ -117,10 +144,12 @@ def test_upload_201_file_uploaded_properly(api):
         assert r.content == f.read()
 
 
-def test_upload_201_metadata_updated_properly(api):
+@skip_if_token_unset
+def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
     file_path = 'test/files/text.txt'
     file_metadata = {
         'file_metadata_string': 'string_data',
+        'file_metadata_string_japanese': '日本語テスト',
         'file_metadata_int': 10,
         'file_medadata_dict': {'key1': 'value1', 'key2': 'value2'},
         'file_medadata_list': [1, 2, 3],
@@ -134,17 +163,26 @@ def test_upload_201_metadata_updated_properly(api):
         'contents': (None, json.dumps(file_metadata), 'application/json'),
     }
     url = api.url_for(server.Upload)
-    record_id = 'test_record'
-    database_id = 'test_database'
+    record_id = setup_metastore_data['record_id']
+    database_id = setup_metastore_data['database_id']
     params = {
         'record_id': record_id,
         'database_id': database_id,
     }
-    r = api.requests.post(url=url, files=files, params=params)
+    r = api.requests.post(url=url, files=files, params=params, headers=AUTH_HEADERS)
     assert r.status_code == 201
+    data = json.loads(r.text)
+    assert 'save_file_path' in data.keys()
+    save_file_path = data['save_file_path']
 
-    # TODO: Check file metadata updated in meta-store
-    assert False
+    # Check file metadata updated in meta-store
+    # TODO: Fix sub-string file_path based on base dir in pydtk
+    url = f'{METASTORE_DEV_SERVICE}/files/{quote(save_file_path)[1:]}'
+    r = requests.get(url=url, params=params, headers=AUTH_HEADERS)
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'path' in data.keys()
+    assert data['path'] == save_file_path
 
 
 # TODO: Add 404 tests

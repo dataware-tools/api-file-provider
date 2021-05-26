@@ -17,3 +17,9 @@ Make sure to build the image first.
 $ docker-compose up
 
 ```
+
+## Tips
+
+### How to test with meta-store service
+
+Set API_TOKEN environmental variable on running tests. The test will be skipped otherwise.
