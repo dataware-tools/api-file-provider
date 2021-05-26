@@ -107,7 +107,6 @@ def test_downloads_404(api):
     assert r.status_code == 404
 
 
-# TODO: Skip updating meta-store on test below
 def test_upload_201_file_uploaded_properly(api):
     file_path = 'test/files/text.txt'
     file_metadata = {}

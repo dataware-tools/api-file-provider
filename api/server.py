@@ -327,9 +327,12 @@ def _update_metastore(
         forward_header = get_forward_headers(req)
     except AttributeError:
         forward_header = req.headers
-    headers = {
-        'authorization': forward_header['authorization']
-    }
+    try:
+        headers = {
+            'authorization': forward_header['authorization']
+        }
+    except KeyError:
+        return False
     params = {
         'record_id': record_id,
         'database_id': database_id,
