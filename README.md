@@ -20,6 +20,10 @@ $ docker-compose up
 
 ## Tips
 
+### How to set directory to store uploaded files
+
+Set UPLOADED_FILE_PATH_PREFIX environmental variable. If not set, `/opt/uploaded_data` will be used.
+
 ### How to test with meta-store service
 
 Set API_TOKEN environmental variable on running tests. The test will be skipped otherwise.
