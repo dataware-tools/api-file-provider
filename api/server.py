@@ -376,7 +376,6 @@ def _key_update_daemon():
 
 
 if __name__ == '__main__':
-    breakpoint()
     print('Debug: {}'.format(debug))
     catalogs = get_catalogs()
     daemon = threading.Thread(target=_key_update_daemon)
