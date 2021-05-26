@@ -182,6 +182,8 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
     data = json.loads(r.text)
     assert 'path' in data.keys()
     assert data['path'] == save_file_path
+    assert 'contents' in data.keys()
+    assert data['contents'] == file_metadata
 
 
 # TODO: Add 404 tests
