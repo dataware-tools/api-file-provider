@@ -230,6 +230,37 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
 # TODO: Add 404 tests
 
 
+def test_delete_file_200(api):
+    file_path = 'test/files/text.txt'
+    file_metadata = {}
+    files = {
+        'file': ('test.txt', open(file_path, 'rb'), 'anything'),
+        'contents': (None, json.dumps(file_metadata), 'application/json'),
+    }
+    record_id = 'test_record'
+    database_id = 'test_database'
+    params = {
+        'record_id': record_id,
+        'database_id': database_id,
+    }
+    r = api.requests.post(url=api.url_for(server.Upload), files=files, params=params)
+    assert r.status_code == 201
+    data = json.loads(r.text)
+    assert 'save_file_path' in data.keys()
+    save_file_path = data['save_file_path']
+
+    params = {
+        'path': save_file_path,
+    }
+    r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
+    assert r.status_code == 200
+
+    # Check whether the is file deleted
+    params = {'path': save_file_path}
+    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    assert r.status_code == 404
+
+
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
 def test_download_403(api, file_path, content_type):
     params = {'path': file_path}
