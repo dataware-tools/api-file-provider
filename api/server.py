@@ -220,7 +220,14 @@ class Upload:
             f'record_{get_valid_filename(record_id)}',
             file['filename'],
         )
-        save_file(save_file_path, file)
+        if os.path.exists(save_file_path):
+            resp.status_code = 409
+            resp.media = {
+                'reason': f'The file with the same path ({save_file_path}) already exists.',
+            }
+            return
+        else:
+            save_file(save_file_path, file)
 
         # Add metadata to meta-store
         _update_metastore(req, database_id, record_id, save_file_path, file_metadata)
