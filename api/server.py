@@ -17,7 +17,11 @@ from urllib.parse import quote
 from dataware_tools_api_helper import get_jwt_payload_from_request
 from dataware_tools_api_helper import get_catalogs
 from dataware_tools_api_helper import get_forward_headers
-from api.settings import UPLOADED_FILE_PATH_PREFIX
+from api.settings import (
+    UPLOADED_FILE_PATH_PREFIX,
+    METASTORE_DEV_SERVICE,
+)
+from api.utils import get_valid_filename
 
 # Metadata
 description = "An API for downloading files."
@@ -53,7 +57,7 @@ jwt_key = hashlib.sha256(
     api.secret_key.encode('utf-8') if isinstance(api.secret_key, str) else api.secret_key
 ).hexdigest()
 catalogs = {}
-debug = False
+debug = os.environ.get('API_DEBUG', '') in ['true', 'True', 'TRUE', '1']
 
 
 @api.route('/')
@@ -203,21 +207,28 @@ class Upload:
 
         data = await req.media(format='files')
         file = data['file']
+        if 'contents' in data.keys():
+            file_metadata = json.loads(data['contents']['content'].decode())
+        else:
+            file_metadata = {}
         database_id = req.params.get('database_id', '')
         record_id = req.params.get('record_id', '')
 
         save_file_path = os.path.join(
             UPLOADED_FILE_PATH_PREFIX,
-            f'database_{database_id}',
-            f'record_{record_id}',
+            f'database_{get_valid_filename(database_id)}',
+            f'record_{get_valid_filename(record_id)}',
             file['filename'],
         )
         save_file(save_file_path, file)
 
-        # TODO: Get metadata of the record from pydtk
-        # TODO: Add data to pydtk
+        # Add metadata to meta-store
+        _update_metastore(req, database_id, record_id, save_file_path, file_metadata)
 
         resp.status_code = 201
+        resp.media = {
+            'save_file_path': save_file_path,
+        }
         return
 
 
@@ -287,6 +298,57 @@ def _get_content_type(req, database_id, record_id, path):
         return None
 
 
+def _update_metastore(
+    req: responder.Request,
+    database_id: str,
+    record_id: str,
+    save_file_path: str,
+    file_metadata: dict,
+) -> bool:
+    """Update metadata in metastore.
+
+    Args:
+        req (responder.Request)
+        database_id (str)
+        record_id (str)
+        save_file_path (str)
+        file_metadata (dict)
+
+    Returns:
+        (bool): True if the post request succeeds, False otherwise.
+
+    """
+    if debug:
+        meta_service = METASTORE_DEV_SERVICE
+    else:
+        meta_service = 'http://' + get_catalogs()['api']['metaStore']['service']
+
+    try:
+        forward_header = get_forward_headers(req)
+    except AttributeError:
+        forward_header = req.headers
+    try:
+        headers = {
+            'authorization': forward_header['authorization']
+        }
+    except KeyError:
+        return False
+    params = {
+        'record_id': record_id,
+        'database_id': database_id,
+    }
+    request_data = {
+        'path': save_file_path,
+        'contents': file_metadata,
+    }
+    try:
+        requests.post(f'{meta_service}/files', params=params, json=request_data, headers=headers)
+    except Exception:
+        return False
+
+    return True
+
+
 def regenerate_jwt_key(postfix: str = ''):
     """Re-generate JWT key.
 
@@ -314,9 +376,7 @@ def _key_update_daemon():
 
 
 if __name__ == '__main__':
-    debug = os.environ.get('API_DEBUG', '') in ['true', 'True', 'TRUE', '1']
     print('Debug: {}'.format(debug))
-    debug = debug
     catalogs = get_catalogs()
     daemon = threading.Thread(target=_key_update_daemon)
     daemon.start()
