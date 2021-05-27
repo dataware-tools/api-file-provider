@@ -6,6 +6,7 @@ import json
 import os
 import pytest
 import requests
+import shutil
 import time
 from urllib.parse import quote
 
@@ -40,6 +41,16 @@ def setup_metastore_data():
     # Finalizer
     requests.delete(url=f'{METASTORE_DEV_SERVICE}/databases/{database_id}', headers=AUTH_HEADERS)
     requests.delete(url=f'{METASTORE_DEV_SERVICE}/records/{record_id}', headers=AUTH_HEADERS)
+
+
+def delete_database_directory(database_id: str):
+    """Delete directory that uploaded files are stored for specific database_id."""
+    directory_for_database = os.path.join(
+        UPLOADED_FILE_PATH_PREFIX,
+        f'database_{database_id}',
+    )
+    if os.path.exists(directory_for_database):
+        shutil.rmtree(directory_for_database)
 
 
 def test_healthz(api):
@@ -142,6 +153,9 @@ def test_upload_201_file_uploaded_properly(api):
     with open(file_path, 'rb') as f:
         assert r.content == f.read()
 
+    # Detele uploaded files
+    delete_database_directory(database_id)
+
 
 def test_upload_409_duplicated_file(api):
     file_path = 'test/files/text.txt'
@@ -162,6 +176,9 @@ def test_upload_409_duplicated_file(api):
 
     r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 409
+
+    # Detele uploaded files
+    delete_database_directory(database_id)
 
 
 @skip_if_token_unset
@@ -194,6 +211,9 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
     data = json.loads(r.text)
     assert 'save_file_path' in data.keys()
     save_file_path = data['save_file_path']
+
+    # Detele uploaded files
+    delete_database_directory(database_id)
 
     # Check file metadata updated in meta-store
     # TODO: Fix sub-string file_path based on base dir in pydtk
