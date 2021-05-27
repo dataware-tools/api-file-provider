@@ -143,6 +143,27 @@ def test_upload_201_file_uploaded_properly(api):
         assert r.content == f.read()
 
 
+def test_upload_409_duplicated_file(api):
+    file_path = 'test/files/text.txt'
+    file_metadata = {}
+    files = {
+        'file': ('test.txt', open(file_path, 'rb'), 'anything'),
+        'contents': (None, json.dumps(file_metadata), 'application/json'),
+    }
+    url = api.url_for(server.Upload)
+    record_id = 'test_record'
+    database_id = 'test_database'
+    params = {
+        'record_id': record_id,
+        'database_id': database_id,
+    }
+    r = api.requests.post(url=url, files=files, params=params)
+    assert r.status_code == 201
+
+    r = api.requests.post(url=url, files=files, params=params)
+    assert r.status_code == 409
+
+
 @skip_if_token_unset
 def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
     file_path = 'test/files/text.txt'
