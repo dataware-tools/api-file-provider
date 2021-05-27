@@ -239,6 +239,32 @@ class Upload:
         return
 
 
+@api.route('/delete')
+class DeleteFile:
+    async def on_delete(self, req: responder.Request, resp: responder.Response):
+        """Delete file with the requested path.
+
+        Args:
+            req (responder.Request): Request object.
+            resp (responder.Response): Response object.
+            *
+
+        """
+        file_path = req.params.get('path', '')
+
+        if not os.path.exists(file_path):
+            resp.status_code = 404
+            resp.media = {
+                'reason': f'The file ({file_path}) does not exist.',
+            }
+            return
+
+        # Detele file
+        os.remove(file_path)
+        resp.status_code = 200
+        return
+
+
 @api.route('/file')
 async def get_file(req, resp):
     """Return the corresponding file.
