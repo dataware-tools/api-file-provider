@@ -261,6 +261,14 @@ def test_delete_file_200(api):
     assert r.status_code == 404
 
 
+def test_delete_file_404(api):
+    params = {
+        'path': '/file_path_that_does_not_exist',
+    }
+    r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
+    assert r.status_code == 404
+
+
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
 def test_download_403(api, file_path, content_type):
     params = {'path': file_path}
