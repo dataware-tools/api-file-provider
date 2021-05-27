@@ -231,6 +231,7 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
 
 
 def test_delete_file_200(api):
+    # Upload file for delete later
     file_path = 'test/files/text.txt'
     file_metadata = {}
     files = {
@@ -249,6 +250,7 @@ def test_delete_file_200(api):
     assert 'save_file_path' in data.keys()
     save_file_path = data['save_file_path']
 
+    # Delete file
     params = {
         'path': save_file_path,
     }
@@ -259,6 +261,9 @@ def test_delete_file_200(api):
     params = {'path': save_file_path}
     r = api.requests.post(url=api.url_for(server.Downloads), data=params)
     assert r.status_code == 404
+
+    # Detele uploaded files
+    delete_database_directory(database_id)
 
 
 def test_delete_file_404(api):
