@@ -174,6 +174,8 @@ def test_upload_409_duplicated_file(api):
     r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 201
 
+    time.sleep(0.5)
+
     r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 409
 
