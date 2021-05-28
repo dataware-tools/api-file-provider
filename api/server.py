@@ -252,15 +252,22 @@ class DeleteFile:
         """
         file_path = req.params.get('path', '')
 
-        if not os.path.exists(file_path):
+        # Detele file
+        try:
+            os.remove(file_path)
+        except (PermissionError, IsADirectoryError):
+            resp.status_code = 403
+            resp.media = {
+                'reason': f'Deleting ({file_path}) is forbbiden.',
+            }
+            return
+        except FileNotFoundError:
             resp.status_code = 404
             resp.media = {
                 'reason': f'The file ({file_path}) does not exist.',
             }
             return
 
-        # Detele file
-        os.remove(file_path)
         resp.status_code = 200
         return
 
