@@ -276,6 +276,16 @@ def test_delete_file_404(api):
     assert r.status_code == 404
 
 
+def test_delete_file_delete_directory_get_403(api):
+    os.mkdir('/tmp/dir_to_delete_test')
+    params = {
+        'path': '/tmp/dir_to_delete_test',
+    }
+    r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
+    os.rmdir('/tmp/dir_to_delete_test')
+    assert r.status_code == 403
+
+
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
 def test_download_403(api, file_path, content_type):
     params = {'path': file_path}
