@@ -1,3 +1,4 @@
+import os.path
 import re
 
 
@@ -15,3 +16,24 @@ def get_valid_filename(name):
     s = str(name).strip().replace(' ', '_')
     s = re.sub(r'(?u)[^-\w.]', '', s)
     return s
+
+
+def is_file_in_directory(file: str, directory: str) -> bool:
+    """Return if the file is in the directory.
+    Taken from https://stackoverflow.com/q/3812849.
+
+    Args:
+        file (str): Path to file to check.
+        directory (str): path to directory to check.
+
+    Returns:
+        (bool): Whether the file is in the specified directory.
+
+    """
+    # make both absolute
+    directory = os.path.join(os.path.realpath(directory), '')
+    file = os.path.realpath(file)
+
+    # return true, if the common prefix of both is equal to directory
+    # e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
+    return os.path.commonprefix([file, directory]) == directory

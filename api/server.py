@@ -21,7 +21,10 @@ from api.settings import (
     UPLOADED_FILE_PATH_PREFIX,
     METASTORE_DEV_SERVICE,
 )
-from api.utils import get_valid_filename
+from api.utils import (
+    get_valid_filename,
+    is_file_in_directory,
+)
 
 # Metadata
 description = "An API for downloading files."
@@ -236,6 +239,47 @@ class Upload:
         resp.media = {
             'save_file_path': save_file_path,
         }
+        return
+
+
+@api.route('/delete')
+class DeleteFile:
+    async def on_delete(self, req: responder.Request, resp: responder.Response):
+        """Delete file with the requested path.
+
+        Args:
+            req (responder.Request): Request object.
+            resp (responder.Response): Response object.
+            *
+
+        """
+        file_path = req.params.get('path', '')
+
+        # Check if path is in the UPLOADED_FILE_PATH_PREFIX directory
+        if not is_file_in_directory(file_path, UPLOADED_FILE_PATH_PREFIX):
+            resp.status_code = 403
+            resp.media = {
+                'reason': f'Deleting ({file_path}) is forbbiden.',
+            }
+            return
+
+        # Detele file
+        try:
+            os.remove(file_path)
+        except (PermissionError, IsADirectoryError):
+            resp.status_code = 403
+            resp.media = {
+                'reason': f'Deleting ({file_path}) is forbbiden.',
+            }
+            return
+        except FileNotFoundError:
+            resp.status_code = 404
+            resp.media = {
+                'reason': f'The file ({file_path}) does not exist.',
+            }
+            return
+
+        resp.status_code = 200
         return
 
 
