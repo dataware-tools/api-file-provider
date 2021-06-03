@@ -21,7 +21,10 @@ from api.settings import (
     UPLOADED_FILE_PATH_PREFIX,
     METASTORE_DEV_SERVICE,
 )
-from api.utils import get_valid_filename
+from api.utils import (
+    get_valid_filename,
+    is_file_in_directory,
+)
 
 # Metadata
 description = "An API for downloading files."
@@ -251,6 +254,14 @@ class DeleteFile:
 
         """
         file_path = req.params.get('path', '')
+
+        # Check if path is in the UPLOADED_FILE_PATH_PREFIX directory
+        if not is_file_in_directory(file_path, UPLOADED_FILE_PATH_PREFIX):
+            resp.status_code = 403
+            resp.media = {
+                'reason': f'Deleting ({file_path}) is forbbiden.',
+            }
+            return
 
         # Detele file
         try:

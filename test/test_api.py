@@ -252,6 +252,8 @@ def test_delete_file_200(api):
     assert 'save_file_path' in data.keys()
     save_file_path = data['save_file_path']
 
+    time.sleep(0.5)
+
     # Delete file
     params = {
         'path': save_file_path,
@@ -270,20 +272,43 @@ def test_delete_file_200(api):
 
 def test_delete_file_404(api):
     params = {
-        'path': '/file_path_that_does_not_exist',
+        'path': os.path.join(
+            UPLOADED_FILE_PATH_PREFIX,
+            'file_path_that_does_not_exist',
+        ),
     }
     r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
     assert r.status_code == 404
 
 
 def test_delete_file_delete_directory_get_403(api):
-    os.mkdir('/tmp/dir_to_delete_test')
+    path_to_directory = os.path.join(
+        UPLOADED_FILE_PATH_PREFIX,
+        'dir_to_delete_test',
+    )
+    os.mkdir(path_to_directory)
     params = {
-        'path': '/tmp/dir_to_delete_test',
+        'path': path_to_directory,
     }
     r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
-    os.rmdir('/tmp/dir_to_delete_test')
+    os.rmdir(path_to_directory)
     assert r.status_code == 403
+
+
+def test_delete_file_outside_upload_directory_403(api):
+    # Touch file
+    path_to_file = '/tmp/file_to_delete'
+    with open(path_to_file, 'w') as _:
+        pass
+
+    params = {
+        'path': path_to_file,
+    }
+    r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
+    assert r.status_code == 403
+
+    # Delete file
+    os.remove(path_to_file)
 
 
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
