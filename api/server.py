@@ -194,7 +194,7 @@ class Download:
         resp.stream(_shout_stream, payload.get('path'))
 
 
-@api.route('/upload/')
+@api.route('/upload')
 class Upload:
     async def on_post(self, req, resp):
 
