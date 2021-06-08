@@ -2,12 +2,14 @@
 # Copyright API authors
 """The API server."""
 
-from datetime import datetime, timedelta
 import hashlib
 import json
 import os
-import time
 import threading
+import time
+from datetime import datetime, timedelta
+from typing import Optional, Tuple
+from urllib.parse import quote
 
 import jwt
 import requests
@@ -201,8 +203,8 @@ class Upload:
 
         data = await req.media(format='files')
         file = data['file']
-        if 'contents' in data.keys():
-            file_metadata = json.loads(data['contents']['content'].decode())
+        if 'metadata' in data.keys():
+            file_metadata = json.loads(data['metadata']['content'].decode())
         else:
             file_metadata = {}
         database_id = req.params.get('database_id', '')
@@ -224,13 +226,20 @@ class Upload:
             save_file(save_file_path, file)
 
         # Add metadata to meta-store
-        _update_metastore(req, database_id, record_id, save_file_path, file_metadata)
+        fetch_success, fetch_res = _update_metastore(req, database_id, record_id, save_file_path, file_metadata)
 
-        resp.status_code = 201
-        resp.media = {
-            'save_file_path': save_file_path,
-        }
-        return
+        if fetch_success and fetch_res != None:
+            resp.status_code = fetch_res.status_code if fetch_res.status_code != 200 else 201
+            fetch_res_body = fetch_res.json()
+            resp.media = {
+                'save_file_path': save_file_path,
+                **fetch_res_body
+            }
+            return
+
+        else:
+            resp.status_code = 500
+            return
 
 
 @api.route('/delete')
@@ -347,7 +356,7 @@ def _update_metastore(
     record_id: str,
     save_file_path: str,
     file_metadata: dict,
-) -> bool:
+) -> Tuple[bool, Optional[requests.models.Response]]:
     """Update metadata in metastore.
 
     Args:
@@ -358,7 +367,7 @@ def _update_metastore(
         file_metadata (dict)
 
     Returns:
-        (bool): True if the post request succeeds, False otherwise.
+        (Tuple[bool, dict]): True if the post request succeeds, False otherwise.
 
     """
     if debug:
@@ -375,6 +384,7 @@ def _update_metastore(
             'authorization': forward_header['authorization']
         }
     except KeyError:
+        return (False, None)
     request_data = {
         'record_id': record_id,
         'database_id': database_id,
@@ -385,9 +395,9 @@ def _update_metastore(
         res = requests.post(f'{meta_service}/databases/{database_id}/files',
                             json=request_data, headers=headers)
     except Exception:
-        return False
+        return (False, res)
 
-    return True
+    return (True, res)
 
 
 def regenerate_jwt_key(postfix: str = ''):
