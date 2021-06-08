@@ -10,21 +10,12 @@ import time
 import threading
 
 import jwt
-import responder
 import requests
-from urllib.parse import quote
+import responder
+from dataware_tools_api_helper import get_forward_headers, get_jwt_payload_from_request
 
-from dataware_tools_api_helper import get_jwt_payload_from_request
-from dataware_tools_api_helper import get_catalogs
-from dataware_tools_api_helper import get_forward_headers
-from api.settings import (
-    UPLOADED_FILE_PATH_PREFIX,
-    METASTORE_DEV_SERVICE,
-)
-from api.utils import (
-    get_valid_filename,
-    is_file_in_directory,
-)
+from api.settings import METASTORE_DEV_SERVICE, METASTORE_PROD_SERVICE, UPLOADED_FILE_PATH_PREFIX
+from api.utils import get_valid_filename, is_file_in_directory
 
 # Metadata
 description = "An API for downloading files."
@@ -328,6 +319,7 @@ async def _shout_stream(filepath, chunk_size=8192):
 def _get_content_type(req, database_id, record_id, path):
     # Try to get content-type of the file from meta-data
     try:
+        # TODO: Don't use catalogs
         record_service = 'http://' + catalogs['api']['recordStore']['service']
         if debug:
             record_service = 'https://dev.tools.hdwlab.com/api/latest/record_store'
@@ -372,7 +364,7 @@ def _update_metastore(
     if debug:
         meta_service = METASTORE_DEV_SERVICE
     else:
-        meta_service = 'http://' + get_catalogs()['api']['metaStore']['service']
+        meta_service = METASTORE_PROD_SERVICE
 
     try:
         forward_header = get_forward_headers(req)
@@ -383,17 +375,15 @@ def _update_metastore(
             'authorization': forward_header['authorization']
         }
     except KeyError:
-        return False
-    params = {
+    request_data = {
         'record_id': record_id,
         'database_id': database_id,
-    }
-    request_data = {
         'path': save_file_path,
-        'contents': file_metadata,
+        **file_metadata
     }
     try:
-        requests.post(f'{meta_service}/files', params=params, json=request_data, headers=headers)
+        res = requests.post(f'{meta_service}/databases/{database_id}/files',
+                            json=request_data, headers=headers)
     except Exception:
         return False
 
@@ -428,7 +418,6 @@ def _key_update_daemon():
 
 if __name__ == '__main__':
     print('Debug: {}'.format(debug))
-    catalogs = get_catalogs()
     daemon = threading.Thread(target=_key_update_daemon)
     daemon.start()
 
