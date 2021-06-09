@@ -293,7 +293,7 @@ def test_delete_file_delete_directory_get_403(api):
         UPLOADED_FILE_PATH_PREFIX,
         'dir_to_delete_test',
     )
-    os.mkdir(path_to_directory)
+    os.makedirs(path_to_directory, exist_ok=True)
     params = {
         'path': path_to_directory,
     }
