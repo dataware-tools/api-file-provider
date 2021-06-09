@@ -228,7 +228,7 @@ class Upload:
         # Add metadata to meta-store
         fetch_success, fetch_res = _update_metastore(req, database_id, record_id, save_file_path, file_metadata)
 
-        if fetch_success and fetch_res != None:
+        if fetch_success and fetch_res is not None:
             resp.status_code = fetch_res.status_code if fetch_res.status_code != 200 else 201
             fetch_res_body = fetch_res.json()
             resp.media = {
