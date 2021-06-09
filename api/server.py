@@ -2,29 +2,22 @@
 # Copyright API authors
 """The API server."""
 
-from datetime import datetime, timedelta
 import hashlib
 import json
 import os
-import time
 import threading
-
-import jwt
-import responder
-import requests
+import time
+from datetime import datetime, timedelta
+from typing import Optional, Tuple
 from urllib.parse import quote
 
-from dataware_tools_api_helper import get_jwt_payload_from_request
-from dataware_tools_api_helper import get_catalogs
-from dataware_tools_api_helper import get_forward_headers
-from api.settings import (
-    UPLOADED_FILE_PATH_PREFIX,
-    METASTORE_DEV_SERVICE,
-)
-from api.utils import (
-    get_valid_filename,
-    is_file_in_directory,
-)
+import jwt
+import requests
+import responder
+from dataware_tools_api_helper import get_forward_headers, get_jwt_payload_from_request
+
+from api.settings import METASTORE_DEV_SERVICE, METASTORE_PROD_SERVICE, UPLOADED_FILE_PATH_PREFIX
+from api.utils import get_valid_filename, is_file_in_directory
 
 # Metadata
 description = "An API for downloading files."
@@ -210,8 +203,8 @@ class Upload:
 
         data = await req.media(format='files')
         file = data['file']
-        if 'contents' in data.keys():
-            file_metadata = json.loads(data['contents']['content'].decode())
+        if 'metadata' in data.keys():
+            file_metadata = json.loads(data['metadata']['content'].decode())
         else:
             file_metadata = {}
         database_id = req.params.get('database_id', '')
@@ -233,13 +226,20 @@ class Upload:
             save_file(save_file_path, file)
 
         # Add metadata to meta-store
-        _update_metastore(req, database_id, record_id, save_file_path, file_metadata)
+        fetch_success, fetch_res = _update_metastore(req, database_id, record_id, save_file_path, file_metadata)
 
-        resp.status_code = 201
-        resp.media = {
-            'save_file_path': save_file_path,
-        }
-        return
+        if fetch_success and fetch_res is not None:
+            resp.status_code = fetch_res.status_code if fetch_res.status_code != 200 else 201
+            fetch_res_body = fetch_res.json()
+            resp.media = {
+                'save_file_path': save_file_path,
+                **fetch_res_body
+            }
+            return
+
+        else:
+            resp.status_code = 500
+            return
 
 
 @api.route('/delete')
@@ -328,6 +328,7 @@ async def _shout_stream(filepath, chunk_size=8192):
 def _get_content_type(req, database_id, record_id, path):
     # Try to get content-type of the file from meta-data
     try:
+        # TODO: Don't use catalogs
         record_service = 'http://' + catalogs['api']['recordStore']['service']
         if debug:
             record_service = 'https://dev.tools.hdwlab.com/api/latest/record_store'
@@ -355,7 +356,7 @@ def _update_metastore(
     record_id: str,
     save_file_path: str,
     file_metadata: dict,
-) -> bool:
+) -> Tuple[bool, Optional[requests.models.Response]]:
     """Update metadata in metastore.
 
     Args:
@@ -366,13 +367,13 @@ def _update_metastore(
         file_metadata (dict)
 
     Returns:
-        (bool): True if the post request succeeds, False otherwise.
+        (Tuple[bool, dict]): True if the post request succeeds, False otherwise.
 
     """
     if debug:
         meta_service = METASTORE_DEV_SERVICE
     else:
-        meta_service = 'http://' + get_catalogs()['api']['metaStore']['service']
+        meta_service = METASTORE_PROD_SERVICE
 
     try:
         forward_header = get_forward_headers(req)
@@ -383,21 +384,20 @@ def _update_metastore(
             'authorization': forward_header['authorization']
         }
     except KeyError:
-        return False
-    params = {
+        return (False, None)
+    request_data = {
         'record_id': record_id,
         'database_id': database_id,
-    }
-    request_data = {
         'path': save_file_path,
-        'contents': file_metadata,
+        **file_metadata
     }
     try:
-        requests.post(f'{meta_service}/files', params=params, json=request_data, headers=headers)
+        res = requests.post(f'{meta_service}/databases/{database_id}/files',
+                            json=request_data, headers=headers)
     except Exception:
-        return False
+        return (False, res)
 
-    return True
+    return (True, res)
 
 
 def regenerate_jwt_key(postfix: str = ''):
@@ -428,7 +428,6 @@ def _key_update_daemon():
 
 if __name__ == '__main__':
     print('Debug: {}'.format(debug))
-    catalogs = get_catalogs()
     daemon = threading.Thread(target=_key_update_daemon)
     daemon.start()
 
