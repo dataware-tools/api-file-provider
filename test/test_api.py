@@ -118,6 +118,7 @@ def test_downloads_404(api):
     assert r.status_code == 404
 
 
+@skip_if_token_unset
 def test_upload_201_file_uploaded_properly(api):
     file_path = 'test/files/text.txt'
     file_metadata = {"description": "test in api-file-provider"}
@@ -161,6 +162,7 @@ def test_upload_201_file_uploaded_properly(api):
     delete_database_directory(database_id)
 
 
+@skip_if_token_unset
 def test_upload_409_duplicated_file(api):
     file_path = 'test/files/text.txt'
     file_metadata = {}
@@ -236,6 +238,7 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
 # TODO: Add 404 tests
 
 
+@skip_if_token_unset
 def test_delete_file_200(api):
     # Upload file for delete later
     file_path = 'test/files/text.txt'
