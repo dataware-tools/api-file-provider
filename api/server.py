@@ -16,7 +16,7 @@ import requests
 import responder
 from dataware_tools_api_helper import get_forward_headers, get_jwt_payload_from_request
 
-from api.settings import METASTORE_DEV_SERVICE, METASTORE_PROD_SERVICE, UPLOADED_FILE_PATH_PREFIX
+from api.settings import META_STORE_SERVICE, UPLOADED_FILE_PATH_PREFIX
 from api.utils import get_valid_filename, is_file_in_directory
 
 # Metadata
@@ -370,11 +370,6 @@ def _update_metastore(
         (Tuple[bool, dict]): True if the post request succeeds, False otherwise.
 
     """
-    if debug:
-        meta_service = METASTORE_DEV_SERVICE
-    else:
-        meta_service = METASTORE_PROD_SERVICE
-
     try:
         forward_header = get_forward_headers(req)
     except AttributeError:
@@ -392,7 +387,7 @@ def _update_metastore(
         **file_metadata
     }
     try:
-        res = requests.post(f'{meta_service}/databases/{database_id}/files',
+        res = requests.post(f'{META_STORE_SERVICE}/databases/{database_id}/files',
                             json=request_data, headers=headers)
     except Exception:
         return (False, res)

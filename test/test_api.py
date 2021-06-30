@@ -13,7 +13,7 @@ import pytest
 import requests
 
 from api import server
-from api.settings import METASTORE_DEV_SERVICE, UPLOADED_FILE_PATH_PREFIX
+from api.settings import META_STORE_SERVICE, UPLOADED_FILE_PATH_PREFIX
 
 API_TOKEN = os.environ.get('API_TOKEN', None)
 skip_if_token_unset = pytest.mark.skipif(
@@ -34,13 +34,13 @@ def setup_metastore_data():
     database_id = 'database_for_testing_api_file_provider'
     record_id = 'record_for_testing_api_file_provider'
     # Add database
-    requests.post(url=f'{METASTORE_DEV_SERVICE}/databases', headers=AUTH_HEADERS, json={'database_id': database_id})
-    requests.post(url=f'{METASTORE_DEV_SERVICE}/records', headers=AUTH_HEADERS, json={'record_id': record_id})
+    requests.post(url=f'{META_STORE_SERVICE}/databases', headers=AUTH_HEADERS, json={'database_id': database_id})
+    requests.post(url=f'{META_STORE_SERVICE}/records', headers=AUTH_HEADERS, json={'record_id': record_id})
     yield {'database_id': database_id, 'record_id': record_id}
 
     # Finalizer
-    requests.delete(url=f'{METASTORE_DEV_SERVICE}/databases/{database_id}', headers=AUTH_HEADERS)
-    requests.delete(url=f'{METASTORE_DEV_SERVICE}/records/{record_id}', headers=AUTH_HEADERS)
+    requests.delete(url=f'{META_STORE_SERVICE}/databases/{database_id}', headers=AUTH_HEADERS)
+    requests.delete(url=f'{META_STORE_SERVICE}/records/{record_id}', headers=AUTH_HEADERS)
 
 
 def delete_database_directory(database_id: str):
@@ -225,7 +225,7 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
 
     # Check file metadata updated in meta-store
     # TODO: Fix sub-string file_path based on base dir in pydtk
-    url = f'{METASTORE_DEV_SERVICE}/files/{quote(save_file_path)[1:]}'
+    url = f'{META_STORE_SERVICE}/files/{quote(save_file_path)[1:]}'
     r = requests.get(url=url, params=params, headers=AUTH_HEADERS)
     assert r.status_code == 200
     data = json.loads(r.text)

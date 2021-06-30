@@ -5,7 +5,8 @@ default_uploaded_file_path_prefix = os.path.join(
     'opt',
     'uploaded_data',
 )
-UPLOADED_FILE_PATH_PREFIX = os.environ.get('UPLOADED_FILE_PATH_PREFIX', default_uploaded_file_path_prefix)
+UPLOADED_FILE_PATH_PREFIX = os.environ.get('UPLOADED_FILE_PATH_PREFIX',
+                                           default_uploaded_file_path_prefix)
 
-METASTORE_DEV_SERVICE = 'https://dev.tools.hdwlab.com/api/latest/meta_store'
-METASTORE_PROD_SERVICE = os.environ.get("METASTORE_PROD_SERVICE", 'https://dev.tools.hdwlab.com/api/latest/meta_store')
+META_STORE_SERVICE = os.environ.get('META_STORE_SERVICE',
+                                    'https://demo.dataware-tools.com/api/latest/meta_store')
