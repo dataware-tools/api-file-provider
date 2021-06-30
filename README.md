@@ -21,6 +21,9 @@ $ docker-compose up
 
 ```
 
+## Environment variables
+- `META_STORE_SERVICE`: URL of `api-meta-store`
+
 ## Tips
 
 ### How to set directory to store uploaded files
