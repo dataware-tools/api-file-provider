@@ -23,6 +23,9 @@ $ docker-compose up
 
 ## Environment variables
 - `META_STORE_SERVICE`: URL of `api-meta-store`
+- `PORT`: Port to run server on.
+- `API_DEBUG`: Enable debug mode if true.
+
 
 ## Tips
 
