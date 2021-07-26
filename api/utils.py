@@ -57,8 +57,8 @@ def is_valid_path(path: str, check_existence=False) -> bool:
         return False
     else:
         if abspath_splitted[1] in ['bin', 'boot', 'dev', 'etc', 'home', 'lib', 'lib64', 'media',
-                                   'opt', 'proc', 'root', 'run', 'sbin', 'srv', 'sys', 'tmp',
-                                   'usr', 'var']:
+                                   'proc', 'root', 'run', 'sbin', 'srv', 'sys', 'tmp', 'usr',
+                                   'var']:
             return False
 
     # Check the existence of the file

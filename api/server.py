@@ -263,7 +263,7 @@ class DeleteFile:
         file_path = req.params.get('path', '')
 
         # Validation
-        if not is_valid_path(file_path, check_existence=True):
+        if not is_valid_path(file_path, check_existence=False):
             resp.status_code = 403
             resp.media = {
                 'reason': f'Deleting ({file_path}) is forbbiden.',
