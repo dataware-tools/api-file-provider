@@ -17,7 +17,7 @@ import responder
 from dataware_tools_api_helper import get_forward_headers, get_jwt_payload_from_request
 
 from api.settings import META_STORE_SERVICE, UPLOADED_FILE_PATH_PREFIX
-from api.utils import get_valid_filename, is_file_in_directory
+from api.utils import get_valid_filename, is_file_in_directory, is_valid_path
 
 # Metadata
 description = "An API for downloading files."
@@ -108,7 +108,7 @@ class Downloads:
         if all([database_id is not None, record_id is not None]):
             payload['content_type'] = _get_content_type(req, database_id, record_id, path)
 
-        if not os.path.isfile(path):
+        if not is_valid_path(path, check_existence=True):
             resp.status_code = 404
             resp.media = {'reason': 'No such file'}
             return
@@ -178,7 +178,7 @@ class Download:
             )
 
         # Check file
-        if not os.path.isfile(payload.get('path')):
+        if not is_valid_path(payload.get('path'), check_existence=True):
             resp.status_code = 404
             resp.media = {'reason': 'No such file: {}'.format(payload.get('path'))}
             return
@@ -216,6 +216,12 @@ class Upload:
             f'record_{get_valid_filename(record_id)}',
             file['filename'],
         )
+        if not is_valid_path(save_file_path, check_existence=False):
+            resp.status_code = 403
+            resp.media = {
+                'reason': f'Invalid path: {save_file_path}',
+            }
+            return
         if os.path.exists(save_file_path):
             resp.status_code = 409
             resp.media = {
@@ -226,7 +232,8 @@ class Upload:
             save_file(save_file_path, file)
 
         # Add metadata to meta-store
-        fetch_success, fetch_res = _update_metastore(req, database_id, record_id, save_file_path, file_metadata)
+        fetch_success, fetch_res = _update_metastore(req, database_id, record_id, save_file_path,
+                                                     file_metadata)
 
         if fetch_success and fetch_res is not None:
             resp.status_code = fetch_res.status_code if fetch_res.status_code != 200 else 201
@@ -254,6 +261,14 @@ class DeleteFile:
 
         """
         file_path = req.params.get('path', '')
+
+        # Validation
+        if not is_valid_path(file_path, check_existence=True):
+            resp.status_code = 403
+            resp.media = {
+                'reason': f'Deleting ({file_path}) is forbbiden.',
+            }
+            return
 
         # Check if path is in the UPLOADED_FILE_PATH_PREFIX directory
         if not is_file_in_directory(file_path, UPLOADED_FILE_PATH_PREFIX):
@@ -307,7 +322,7 @@ async def get_file(req, resp):
     elif all([database_id is not None, record_id is not None]):
         resp.headers['Content-Type'] = _get_content_type(req, database_id, record_id, path)
 
-    if not os.path.isfile(path):
+    if not is_valid_path(path, check_existence=True):
         resp.status_code = 404
         resp.media = {'reason': 'No such file'}
         return

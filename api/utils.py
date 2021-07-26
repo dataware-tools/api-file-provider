@@ -37,3 +37,33 @@ def is_file_in_directory(file: str, directory: str) -> bool:
     # return true, if the common prefix of both is equal to directory
     # e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
     return os.path.commonprefix([file, directory]) == directory
+
+
+def is_valid_path(path: str, check_existence=False) -> bool:
+    """Checks if the path is valid.
+
+    Args:
+        path (str): File path
+        check_existence (bool): If True, this function also checks the existence of the file
+
+    Returns:
+        (bool): True if the path is valid, otherwise False
+
+    """
+    # Avoid Directory Traversal
+    abspath = os.path.abspath(os.path.realpath(path))
+    abspath_splitted = abspath.split(os.sep)
+    if len(abspath_splitted) < 2:
+        return False
+    else:
+        if abspath_splitted[1] in ['bin', 'boot', 'dev', 'etc', 'home', 'lib', 'lib64', 'media',
+                                   'opt', 'proc', 'root', 'run', 'sbin', 'srv', 'sys', 'tmp',
+                                   'usr', 'var']:
+            return False
+
+    # Check the existence of the file
+    if check_existence:
+        if not os.path.isfile(path):
+            return False
+
+    return True
