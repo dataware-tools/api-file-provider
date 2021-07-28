@@ -81,6 +81,11 @@ file_pathes = [
     ('/opt/app/test/files/records/sample/data/records.bag', 'application/rosbag'),
 ]
 
+file_pathes_invalid = [
+    ('/proc/self/environ', 'text/plain'),
+    ('/etc/passwd', 'text/plain'),
+]
+
 
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
 def test_file_get_200(api, file_path, content_type):
@@ -333,3 +338,12 @@ def test_download_403(api, file_path, content_type):
     # Get file with the token
     r = api.requests.get(url=api.url_for(server.Download, token=token))
     assert r.status_code == 403
+
+
+@pytest.mark.parametrize("file_path, content_type", file_pathes_invalid)
+def test_invalid_path(api, file_path, content_type):
+    params = {'path': file_path}
+    if content_type is not None:
+        params.update({'content_type': content_type})
+    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    assert r.status_code == 404
