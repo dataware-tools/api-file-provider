@@ -110,7 +110,7 @@ class Downloads:
 
         if not is_valid_path(path, check_existence=True):
             resp.status_code = 404
-            resp.media = {'reason': 'No such file'}
+            resp.media = {'detail': 'No such file'}
             return
 
         # Encode payload
@@ -155,11 +155,11 @@ class Download:
             payload = jwt.decode(token, jwt_key, algorithm='HS256')
         except jwt.ExpiredSignatureError:
             resp.status_code = 403
-            resp.media = {'reason': 'JWT expired'}
+            resp.media = {'detail': 'JWT expired'}
             return
         except jwt.InvalidSignatureError:
             resp.status_code = 403
-            resp.media = {'reason': 'Invalid signature'}
+            resp.media = {'detail': 'Invalid signature'}
             return
 
         # Prepare headers
@@ -180,7 +180,7 @@ class Download:
         # Check file
         if not is_valid_path(payload.get('path'), check_existence=True):
             resp.status_code = 404
-            resp.media = {'reason': 'No such file: {}'.format(payload.get('path'))}
+            resp.media = {'detail': 'No such file: {}'.format(payload.get('path'))}
             return
 
         # Stream the file
@@ -219,13 +219,13 @@ class Upload:
         if not is_valid_path(save_file_path, check_existence=False):
             resp.status_code = 403
             resp.media = {
-                'reason': f'Invalid path: {save_file_path}',
+                'detail': f'Invalid path: {save_file_path}',
             }
             return
         if os.path.exists(save_file_path):
             resp.status_code = 409
             resp.media = {
-                'reason': f'The file with the same path ({save_file_path}) already exists.',
+                'detail': f'The file with the same path ({save_file_path}) already exists.',
             }
             return
         else:
@@ -246,6 +246,9 @@ class Upload:
 
         else:
             resp.status_code = 500
+            resp.media = {
+                'detail': 'Metadata updating process returned no response'
+            }
             return
 
 
@@ -266,7 +269,7 @@ class DeleteFile:
         if not is_valid_path(file_path, check_existence=False):
             resp.status_code = 403
             resp.media = {
-                'reason': f'Deleting ({file_path}) is forbbiden.',
+                'detail': f'Deleting ({file_path}) is forbbiden.',
             }
             return
 
@@ -274,7 +277,7 @@ class DeleteFile:
         if not is_file_in_directory(file_path, UPLOADED_FILE_PATH_PREFIX):
             resp.status_code = 403
             resp.media = {
-                'reason': f'Deleting ({file_path}) is forbbiden.',
+                'detail': f'Deleting ({file_path}) is forbbiden.',
             }
             return
 
@@ -284,13 +287,13 @@ class DeleteFile:
         except (PermissionError, IsADirectoryError):
             resp.status_code = 403
             resp.media = {
-                'reason': f'Deleting ({file_path}) is forbbiden.',
+                'detail': f'Deleting ({file_path}) is forbbiden.',
             }
             return
         except FileNotFoundError:
             resp.status_code = 404
             resp.media = {
-                'reason': f'The file ({file_path}) does not exist.',
+                'detail': f'The file ({file_path}) does not exist.',
             }
             return
 
@@ -324,7 +327,7 @@ async def get_file(req, resp):
 
     if not is_valid_path(path, check_existence=True):
         resp.status_code = 404
-        resp.media = {'reason': 'No such file'}
+        resp.media = {'detail': 'No such file'}
         return
 
     resp.stream(_shout_stream, path)
