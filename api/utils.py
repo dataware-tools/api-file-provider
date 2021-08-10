@@ -67,3 +67,19 @@ def is_valid_path(path: str, check_existence=False) -> bool:
             return False
 
     return True
+
+
+def get_jwt_key() -> str:
+    """Get JWT Key."""
+    try:
+        with open('/tmp/api-file-provider-jwt-key', 'r') as f:
+            key = f.read()
+        return key
+    except IOError:
+        return ''
+
+
+def save_jwt_key(key: str):
+    """Get JWT Key."""
+    with open('/tmp/api-file-provider-jwt-key', 'w') as f:
+        f.write(key)

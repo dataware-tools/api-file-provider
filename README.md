@@ -28,3 +28,4 @@ $ docker-compose up
 - `PORT`: Port to run server on.
 - `API_DEBUG`: Enable debug mode if true.
 - `API_TOKEN`: Token as a string used for accessing external API while running tests. If not set, tests that use external API will be skipped.
+- `NUM_WORKERS`: Number of workers to run in parallel
