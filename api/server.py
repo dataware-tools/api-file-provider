@@ -44,10 +44,9 @@ if __name__ == '__main__':
     daemon = threading.Thread(target=_key_update_daemon)
     daemon.start()
 
-    num_available_cores = len(os.sched_getaffinity(0))
     uvicorn.run(
         "main:api",
         host='0.0.0.0',
         port=8080,
-        workers=int(os.environ.get('NUM_WORKERS', num_available_cores * 2))
+        workers=int(os.environ.get('NUM_WORKERS', "1"))
     )
