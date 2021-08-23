@@ -12,7 +12,7 @@ from urllib.parse import quote
 import pytest
 import requests
 
-from api import server
+from api import main
 from api.settings import META_STORE_SERVICE, UPLOADED_FILE_PATH_PREFIX
 
 API_TOKEN = os.environ.get('API_TOKEN', None)
@@ -25,7 +25,7 @@ AUTH_HEADERS = {'authorization': f'Bearer {API_TOKEN}'}
 
 @pytest.fixture
 def api():
-    return server.api
+    return main.api
 
 
 @pytest.fixture
@@ -54,12 +54,12 @@ def delete_database_directory(database_id: str):
 
 
 def test_healthz(api):
-    r = api.requests.get(url=api.url_for(server.healthz))
+    r = api.requests.get(url=api.url_for(main.healthz))
     assert r.text == 'ok'
 
 
 def test_index(api):
-    r = api.requests.get(url=api.url_for(server.index))
+    r = api.requests.get(url=api.url_for(main.index))
     data = json.loads(r.text)
     assert 'jwt_payload' in data.keys()
 
@@ -68,7 +68,7 @@ def assert_file_get_200(api, file_path, content_type=None):
     params = {'path': file_path}
     if content_type is not None:
         params.update({'content_type': content_type})
-    r = api.requests.get(url=api.url_for(server.get_file), params=params)
+    r = api.requests.get(url=api.url_for(main.get_file), params=params)
     assert r.status_code == 200
     if content_type is not None:
         assert r.headers['Content-Type'] == content_type
@@ -93,7 +93,7 @@ def test_file_get_200(api, file_path, content_type):
 
 
 def test_file_get_404(api):
-    r = api.requests.get(url=api.url_for(server.get_file),
+    r = api.requests.get(url=api.url_for(main.get_file),
                          params={'path': 'a-file-that-does-not-exist'})
     assert r.status_code == 404
 
@@ -103,13 +103,13 @@ def test_download_200(api, file_path, content_type):
     params = {'path': file_path}
     if content_type is not None:
         params.update({'content_type': content_type})
-    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
     assert r.status_code == 200
     data = json.loads(r.text)
     assert 'token' in data.keys()
 
     # Get file with the token
-    r = api.requests.get(url=api.url_for(server.Download, token=data['token']))
+    r = api.requests.get(url=api.url_for(main.Download, token=data['token']))
     if content_type is not None:
         assert r.headers['Content-Type'] == content_type
     assert os.path.basename(file_path) in r.headers['Content-Disposition']
@@ -118,7 +118,7 @@ def test_download_200(api, file_path, content_type):
 
 
 def test_downloads_404(api):
-    r = api.requests.post(url=api.url_for(server.Downloads),
+    r = api.requests.post(url=api.url_for(main.Downloads),
                           data={'path': 'a-file-that-does-not-exist'})
     assert r.status_code == 404
 
@@ -131,7 +131,7 @@ def test_upload_201_file_uploaded_properly(api):
         'file': ('test.txt', open(file_path, 'rb'), 'anything'),
         'metadata': (None, json.dumps(file_metadata), 'application/json'),
     }
-    url = api.url_for(server.Upload)
+    url = api.url_for(main.Upload)
     record_id = 'test_record'
     # ! Below database exists for testing data-browser
     # TODO: make database for testing
@@ -152,13 +152,13 @@ def test_upload_201_file_uploaded_properly(api):
     # TODO: pass below test
     # Download token for uploaded file
     params = {'path': save_file_path}
-    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
     assert r.status_code == 200
     data = json.loads(r.text)
     assert 'token' in data.keys()
 
     # Get file with the token
-    r = api.requests.get(url=api.url_for(server.Download, token=data['token']))
+    r = api.requests.get(url=api.url_for(main.Download, token=data['token']))
     assert r.status_code == 200
     with open(file_path, 'rb') as f:
         assert r.content == f.read()
@@ -175,7 +175,7 @@ def test_upload_409_duplicated_file(api):
         'file': ('test.txt', open(file_path, 'rb'), 'anything'),
         'contents': (None, json.dumps(file_metadata), 'application/json'),
     }
-    url = api.url_for(server.Upload)
+    url = api.url_for(main.Upload)
     record_id = 'test_record'
     database_id = 'test_database'
     params = {
@@ -212,7 +212,7 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
         # - How to request in JS: https://stackoverflow.com/a/50774380
         'contents': (None, json.dumps(file_metadata), 'application/json'),
     }
-    url = api.url_for(server.Upload)
+    url = api.url_for(main.Upload)
     record_id = setup_metastore_data['record_id']
     database_id = setup_metastore_data['database_id']
     params = {
@@ -258,7 +258,7 @@ def test_delete_file_200(api):
         'record_id': record_id,
         'database_id': database_id,
     }
-    r = api.requests.post(url=api.url_for(server.Upload), files=files, params=params)
+    r = api.requests.post(url=api.url_for(main.Upload), files=files, params=params)
     assert r.status_code == 201
     data = json.loads(r.text)
     assert 'save_file_path' in data.keys()
@@ -270,12 +270,12 @@ def test_delete_file_200(api):
     params = {
         'path': save_file_path,
     }
-    r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
+    r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     assert r.status_code == 200
 
     # Check whether the is file deleted
     params = {'path': save_file_path}
-    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
     assert r.status_code == 404
 
     # Detele uploaded files
@@ -289,7 +289,7 @@ def test_delete_file_404(api):
             'file_path_that_does_not_exist',
         ),
     }
-    r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
+    r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     assert r.status_code == 404
 
 
@@ -302,7 +302,7 @@ def test_delete_file_delete_directory_get_403(api):
     params = {
         'path': path_to_directory,
     }
-    r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
+    r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     os.rmdir(path_to_directory)
     assert r.status_code == 403
 
@@ -316,7 +316,7 @@ def test_delete_file_outside_upload_directory_403(api):
     params = {
         'path': path_to_file,
     }
-    r = api.requests.delete(url=api.url_for(server.DeleteFile), params=params)
+    r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     assert r.status_code == 403
 
     # Delete file
@@ -328,7 +328,7 @@ def test_download_403(api, file_path, content_type):
     params = {'path': file_path}
     if content_type is not None:
         params.update({'content_type': content_type})
-    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
     assert r.status_code == 200
     data = json.loads(r.text)
     assert 'token' in data.keys()
@@ -336,7 +336,7 @@ def test_download_403(api, file_path, content_type):
     token = data['token'] + 'aaaaaaa'
 
     # Get file with the token
-    r = api.requests.get(url=api.url_for(server.Download, token=token))
+    r = api.requests.get(url=api.url_for(main.Download, token=token))
     assert r.status_code == 403
 
 
@@ -345,5 +345,5 @@ def test_invalid_path(api, file_path, content_type):
     params = {'path': file_path}
     if content_type is not None:
         params.update({'content_type': content_type})
-    r = api.requests.post(url=api.url_for(server.Downloads), data=params)
+    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
     assert r.status_code == 404
