@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from urllib.parse import quote
 
+import aiofiles
 import jwt
 import requests
 import responder
@@ -330,9 +331,9 @@ async def get_file(req, resp):
 
 
 async def _shout_stream(filepath, chunk_size=8192):
-    with open(filepath, 'rb') as f:
+    async with aiofiles.open(filepath, 'rb') as f:
         while True:
-            buffer = f.read(chunk_size)
+            buffer = await f.read(chunk_size)
             if buffer:
                 yield buffer
             else:

@@ -23,10 +23,11 @@ classifiers=[
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.6.1"
+python = ">=3.6.1,<4.0"
 dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", tag = "v0.1.0" }
 responder = "^2.0.5"
 PyJWT = "^1.7.1"
+aiofiles = "^0.7.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
