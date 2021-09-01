@@ -148,7 +148,6 @@ def test_upload_201_file_uploaded_properly(api, setup_metastore_data):
 
     time.sleep(0.5)
 
-    # TODO: pass below test
     # Download token for uploaded file
     params = {'path': save_file_path}
     r = api.requests.post(url=api.url_for(main.Downloads), data=params)
