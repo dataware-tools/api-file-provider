@@ -105,3 +105,13 @@ def get_check_permission_client(req: responder.Request):
         forward_header = req.headers
     auth_header = forward_header.get('authorization', '')
     return CheckPermissionClient(auth_header)
+
+
+def get_database_id_from_file_path(file_path: str):
+    """Get a database_id from file_path.
+
+    Args:
+        file_path (str)
+    """
+    directory_for_database = file_path.split(os.path.sep)[-3]
+    return directory_for_database[9:]
