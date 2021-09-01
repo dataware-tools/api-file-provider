@@ -4,7 +4,6 @@
 
 import json
 import os
-import pdb
 import shutil
 import time
 from urllib.parse import quote
@@ -35,7 +34,10 @@ def setup_metastore_data():
     record_id = 'record_for_testing_api_file_provider'
     # Add database
     requests.post(url=f'{META_STORE_SERVICE}/databases', headers=AUTH_HEADERS, json={'database_id': database_id})
-    requests.post(url=f'{META_STORE_SERVICE}/records', headers=AUTH_HEADERS, json={'record_id': record_id})
+    requests.post(
+        url=f'{META_STORE_SERVICE}/databases/{database_id}/records', headers=AUTH_HEADERS,
+        json={'record_id': record_id},
+    )
     yield {'database_id': database_id, 'record_id': record_id}
 
     # Finalizer
@@ -124,7 +126,7 @@ def test_downloads_404(api):
 
 
 @skip_if_token_unset
-def test_upload_201_file_uploaded_properly(api):
+def test_upload_201_file_uploaded_properly(api, setup_metastore_data):
     file_path = 'test/files/text.txt'
     file_metadata = {"description": "test in api-file-provider"}
     files = {
@@ -132,10 +134,8 @@ def test_upload_201_file_uploaded_properly(api):
         'metadata': (None, json.dumps(file_metadata), 'application/json'),
     }
     url = api.url_for(main.Upload)
-    record_id = 'test_record'
-    # ! Below database exists for testing data-browser
-    # TODO: make database for testing
-    database_id = 'test1'
+    record_id = setup_metastore_data['record_id']
+    database_id = setup_metastore_data['database_id']
     params = {
         'record_id': record_id,
         'database_id': database_id,
@@ -146,7 +146,6 @@ def test_upload_201_file_uploaded_properly(api):
     assert 'save_file_path' in data.keys()
     save_file_path = data['save_file_path']
 
-    pdb.set_trace()
     time.sleep(0.5)
 
     # TODO: pass below test
@@ -168,7 +167,7 @@ def test_upload_201_file_uploaded_properly(api):
 
 
 @skip_if_token_unset
-def test_upload_409_duplicated_file(api):
+def test_upload_409_duplicated_file(api, setup_metastore_data):
     file_path = 'test/files/text.txt'
     file_metadata = {}
     files = {
@@ -176,13 +175,13 @@ def test_upload_409_duplicated_file(api):
         'contents': (None, json.dumps(file_metadata), 'application/json'),
     }
     url = api.url_for(main.Upload)
-    record_id = 'test_record'
-    database_id = 'test_database'
+    record_id = setup_metastore_data['record_id']
+    database_id = setup_metastore_data['database_id']
     params = {
         'record_id': record_id,
         'database_id': database_id,
     }
-    r = api.requests.post(url=url, files=files, params=params)
+    r = api.requests.post(url=url, files=files, params=params, headers=AUTH_HEADERS)
     assert r.status_code == 201
 
     time.sleep(0.5)
@@ -223,28 +222,27 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
     assert r.status_code == 201
     data = json.loads(r.text)
     assert 'save_file_path' in data.keys()
+    assert 'uuid' in data.keys()
     save_file_path = data['save_file_path']
+    file_uuid = data['uuid']
 
     # Detele uploaded files
     delete_database_directory(database_id)
 
     # Check file metadata updated in meta-store
-    # TODO: Fix sub-string file_path based on base dir in pydtk
-    url = f'{META_STORE_SERVICE}/files/{quote(save_file_path)[1:]}'
+    url = f'{META_STORE_SERVICE}/databases/{database_id}/files/{file_uuid}'
     r = requests.get(url=url, params=params, headers=AUTH_HEADERS)
     assert r.status_code == 200
     data = json.loads(r.text)
     assert 'path' in data.keys()
     assert data['path'] == save_file_path
-    assert 'contents' in data.keys()
-    assert data['contents'] == file_metadata
 
 
 # TODO: Add 404 tests
 
 
 @skip_if_token_unset
-def test_delete_file_200(api):
+def test_delete_file_200(api, setup_metastore_data):
     # Upload file for delete later
     file_path = 'test/files/text.txt'
     file_metadata = {}
@@ -252,13 +250,13 @@ def test_delete_file_200(api):
         'file': ('test.txt', open(file_path, 'rb'), 'anything'),
         'contents': (None, json.dumps(file_metadata), 'application/json'),
     }
-    record_id = 'test_record'
-    database_id = 'test_database'
+    record_id = setup_metastore_data['record_id']
+    database_id = setup_metastore_data['database_id']
     params = {
         'record_id': record_id,
         'database_id': database_id,
     }
-    r = api.requests.post(url=api.url_for(main.Upload), files=files, params=params)
+    r = api.requests.post(url=api.url_for(main.Upload), files=files, params=params, headers=AUTH_HEADERS)
     assert r.status_code == 201
     data = json.loads(r.text)
     assert 'save_file_path' in data.keys()
