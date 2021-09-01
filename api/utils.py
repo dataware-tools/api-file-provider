@@ -1,5 +1,10 @@
+from distutils.util import strtobool
 import os.path
 import re
+
+from dataware_tools_api_helper import get_forward_headers
+from dataware_tools_api_helper.permissions import CheckPermissionClient, DummyCheckPermissionClient
+import responder
 
 
 def get_valid_filename(name):
@@ -83,3 +88,20 @@ def save_jwt_key(key: str):
     """Get JWT Key."""
     with open('/tmp/api-file-provider-jwt-key', 'w') as f:
         f.write(key)
+
+
+def get_check_permission_client(req: responder.Request):
+    """Get a client for checking permission.
+
+    Args:
+        req (responder.Request): Authorization request header.
+    """
+    if strtobool(os.environ.get('API_IGNORE_PERMISSION_CHECK', 'false')):
+        return DummyCheckPermissionClient('')
+
+    try:
+        forward_header = get_forward_headers(req)
+    except AttributeError:
+        forward_header = req.headers
+    auth_header = forward_header.get('authorization', '')
+    return CheckPermissionClient(auth_header)
