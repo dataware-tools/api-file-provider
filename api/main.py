@@ -15,7 +15,7 @@ import responder
 from dataware_tools_api_helper import get_forward_headers, get_jwt_payload_from_request
 
 from api.settings import META_STORE_SERVICE, UPLOADED_FILE_PATH_PREFIX
-from api.utils import get_valid_filename, is_file_in_directory, is_valid_path, get_jwt_key
+from api.utils import get_valid_filename, is_file_in_directory, is_valid_path, get_jwt_key, get_check_permission_client
 
 # Metadata
 description = "An API for downloading files."
@@ -92,6 +92,15 @@ class Downloads:
         record_id = data.get('record_id', None)
         path = data.get('path', None)
         content_type = data.get('content_type', None)
+
+        # Check permission
+        permission_client = get_check_permission_client(req)
+        try:
+            permission_client.check_permissions('file:read', database_id)
+        except PermissionError:
+            resp.status_code = 403
+            resp.media = {'detail': 'Operation not permitted.'}
+            return
 
         payload = {
             'database_id': database_id,
@@ -207,6 +216,15 @@ class Upload:
         database_id = req.params.get('database_id', '')
         record_id = req.params.get('record_id', '')
 
+        # Check permission
+        permission_client = get_check_permission_client(req)
+        try:
+            permission_client.check_permissions('file:write:add', database_id)
+        except PermissionError:
+            resp.status_code = 403
+            resp.media = {'detail': 'Operation not permitted.'}
+            return
+
         save_file_path = os.path.join(
             UPLOADED_FILE_PATH_PREFIX,
             f'database_{get_valid_filename(database_id)}',
@@ -261,6 +279,7 @@ class DeleteFile:
 
         """
         file_path = req.params.get('path', '')
+        database_id = req.params.get('database_id', '')
 
         # Validation
         if not is_valid_path(file_path, check_existence=False):
@@ -270,12 +289,28 @@ class DeleteFile:
             }
             return
 
+        if not database_id:
+            resp.status_code = 400
+            resp.media = {
+                'detail': 'Param database_id must be specified.',
+            }
+            return
+
         # Check if path is in the UPLOADED_FILE_PATH_PREFIX directory
         if not is_file_in_directory(file_path, UPLOADED_FILE_PATH_PREFIX):
             resp.status_code = 403
             resp.media = {
                 'detail': f'Deleting ({file_path}) is forbbiden.',
             }
+            return
+
+        # Check permission
+        permission_client = get_check_permission_client(req)
+        try:
+            permission_client.check_permissions('file:write:delete', database_id)
+        except PermissionError:
+            resp.status_code = 403
+            resp.media = {'detail': 'Operation not permitted.'}
             return
 
         # Detele file
@@ -315,6 +350,15 @@ async def get_file(req, resp):
     record_id = req.params.get('record_id', None)
     path = req.params.get('path', None)
     content_type = req.params.get('content_type', None)
+
+    # Check permission
+    permission_client = get_check_permission_client(req)
+    try:
+        permission_client.check_permissions('file:read', database_id)
+    except PermissionError:
+        resp.status_code = 403
+        resp.media = {'detail': 'Operation not permitted.'}
+        return
 
     if content_type is not None:
         resp.headers['Content-Type'] = content_type
