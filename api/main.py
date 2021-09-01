@@ -15,14 +15,7 @@ import responder
 from dataware_tools_api_helper import get_forward_headers, get_jwt_payload_from_request
 
 from api.settings import META_STORE_SERVICE, UPLOADED_FILE_PATH_PREFIX
-from api.utils import (
-    get_valid_filename,
-    is_file_in_directory,
-    is_valid_path,
-    get_jwt_key,
-    get_check_permission_client,
-    get_database_id_from_file_path,
-)
+from api.utils import get_valid_filename, is_file_in_directory, is_valid_path, get_jwt_key, get_check_permission_client
 
 # Metadata
 description = "An API for downloading files."
@@ -286,19 +279,20 @@ class DeleteFile:
 
         """
         file_path = req.params.get('path', '')
-
-        # Get database_id from filepath if not specified in params
-        # FIXME: Error can occur due to the mismatch between actual database_id and database_id in file path
-        database_id = req.params.get(
-            'database_id',
-            get_database_id_from_file_path(file_path),
-        )
+        database_id = req.params.get('database_id', '')
 
         # Validation
         if not is_valid_path(file_path, check_existence=False):
             resp.status_code = 403
             resp.media = {
                 'detail': f'Deleting ({file_path}) is forbbiden.',
+            }
+            return
+
+        if not database_id:
+            resp.status_code = 400
+            resp.media = {
+                'detail': 'Param database_id must be specified.',
             }
             return
 

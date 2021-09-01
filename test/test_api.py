@@ -266,6 +266,7 @@ def test_delete_file_200(api, setup_metastore_data):
     # Delete file
     params = {
         'path': save_file_path,
+        'database_id': database_id,
     }
     r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     assert r.status_code == 200
@@ -285,6 +286,7 @@ def test_delete_file_404(api):
             UPLOADED_FILE_PATH_PREFIX,
             'file_path_that_does_not_exist',
         ),
+        'database_id': 'database_id',
     }
     r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     assert r.status_code == 404
@@ -298,6 +300,7 @@ def test_delete_file_delete_directory_get_403(api):
     os.makedirs(path_to_directory, exist_ok=True)
     params = {
         'path': path_to_directory,
+        'database_id': 'database_id',
     }
     r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     os.rmdir(path_to_directory)
@@ -312,6 +315,7 @@ def test_delete_file_outside_upload_directory_403(api):
 
     params = {
         'path': path_to_file,
+        'database_id': 'database_id',
     }
     r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     assert r.status_code == 403
