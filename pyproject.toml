@@ -24,7 +24,7 @@ classifiers=[
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4"
-dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", tag = "v0.1.1" }
+dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", tag = "v0.1.2" }
 responder = "^2.0.5"
 PyJWT = "^1.7.1"
 aiofiles = "^0.7.0"
