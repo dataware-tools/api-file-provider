@@ -449,7 +449,7 @@ def _update_metastore(
         res = requests.post(f'{META_STORE_SERVICE}/databases/{database_id}/files',
                             json=request_data, headers=headers)
     except Exception:
-        return (False, res)
+        return (False, None)
 
     return (True, res)
 
