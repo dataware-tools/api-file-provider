@@ -5,8 +5,6 @@
 import json
 import os
 import shutil
-import time
-from urllib.parse import quote
 
 import pytest
 import requests
@@ -83,11 +81,6 @@ file_pathes = [
     ('/opt/app/test/files/records/sample/data/records.bag', 'application/rosbag'),
 ]
 
-file_pathes_invalid = [
-    ('/proc/self/environ', 'text/plain'),
-    ('/etc/passwd', 'text/plain'),
-]
-
 
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
 def test_file_get_200(api, file_path, content_type):
@@ -100,33 +93,19 @@ def test_file_get_404(api):
     assert r.status_code == 404
 
 
-@pytest.mark.parametrize("file_path, content_type", file_pathes)
-def test_download_200(api, file_path, content_type):
-    params = {'path': file_path}
-    if content_type is not None:
-        params.update({'content_type': content_type})
-    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
-    assert r.status_code == 200
-    data = json.loads(r.text)
-    assert 'token' in data.keys()
-
-    # Get file with the token
-    r = api.requests.get(url=api.url_for(main.Download, token=data['token']))
-    if content_type is not None:
-        assert r.headers['Content-Type'] == content_type
-    assert os.path.basename(file_path) in r.headers['Content-Disposition']
-    with open(file_path, 'rb') as f:
-        assert r.content == f.read()
-
-
 def test_downloads_404(api):
-    r = api.requests.post(url=api.url_for(main.Downloads),
-                          data={'path': 'a-file-that-does-not-exist'})
+    r = api.requests.post(
+        url=api.url_for(main.Downloads),
+        data={
+            'database_id': 'a-database-that-does-not-exist',
+            'file_uuid': 'file-uuid-that-does-not-exist',
+        },
+    )
     assert r.status_code == 404
 
 
 @skip_if_token_unset
-def test_upload_201_file_uploaded_properly(api, setup_metastore_data):
+def test_upload_and_download_properly(api, setup_metastore_data):
     file_path = 'test/files/text.txt'
     file_metadata = {"description": "test in api-file-provider"}
     files = {
@@ -143,14 +122,12 @@ def test_upload_201_file_uploaded_properly(api, setup_metastore_data):
     r = api.requests.post(url=url, files=files, params=params, headers=AUTH_HEADERS)
     assert r.status_code == 201
     data = json.loads(r.text)
-    assert 'save_file_path' in data.keys()
-    save_file_path = data['save_file_path']
-
-    time.sleep(0.5)
+    assert 'uuid' in data.keys()
+    file_uuid = data['uuid']
 
     # Download token for uploaded file
-    params = {'path': save_file_path}
-    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
+    params = {'database_id': database_id, 'file_uuid': file_uuid}
+    r = api.requests.post(url=api.url_for(main.Downloads), data=params, headers=AUTH_HEADERS)
     assert r.status_code == 200
     data = json.loads(r.text)
     assert 'token' in data.keys()
@@ -182,8 +159,6 @@ def test_upload_409_duplicated_file(api, setup_metastore_data):
     }
     r = api.requests.post(url=url, files=files, params=params, headers=AUTH_HEADERS)
     assert r.status_code == 201
-
-    time.sleep(0.5)
 
     r = api.requests.post(url=url, files=files, params=params)
     assert r.status_code == 409
@@ -258,22 +233,23 @@ def test_delete_file_200(api, setup_metastore_data):
     r = api.requests.post(url=api.url_for(main.Upload), files=files, params=params, headers=AUTH_HEADERS)
     assert r.status_code == 201
     data = json.loads(r.text)
-    assert 'save_file_path' in data.keys()
-    save_file_path = data['save_file_path']
-
-    time.sleep(0.5)
+    assert 'uuid' in data.keys()
+    file_uuid = data['uuid']
 
     # Delete file
     params = {
-        'path': save_file_path,
+        'file_uuid': file_uuid,
         'database_id': database_id,
     }
-    r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
+    r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params, headers=AUTH_HEADERS)
     assert r.status_code == 200
 
     # Check whether the is file deleted
-    params = {'path': save_file_path}
-    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
+    params = {
+        'file_uuid': file_uuid,
+        'database_id': database_id,
+    }
+    r = api.requests.post(url=api.url_for(main.Downloads), data=params, headers=AUTH_HEADERS)
     assert r.status_code == 404
 
     # Detele uploaded files
@@ -282,69 +258,16 @@ def test_delete_file_200(api, setup_metastore_data):
 
 def test_delete_file_404(api):
     params = {
-        'path': os.path.join(
-            UPLOADED_FILE_PATH_PREFIX,
-            'file_path_that_does_not_exist',
-        ),
-        'database_id': 'database_id',
+        'file_uuid': 'file_uuid_that_does_not_exist',
+        'database_id': 'database_id_that_does_not_exist',
     }
     r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
     assert r.status_code == 404
 
 
-def test_delete_file_delete_directory_get_403(api):
-    path_to_directory = os.path.join(
-        UPLOADED_FILE_PATH_PREFIX,
-        'dir_to_delete_test',
-    )
-    os.makedirs(path_to_directory, exist_ok=True)
-    params = {
-        'path': path_to_directory,
-        'database_id': 'database_id',
-    }
-    r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
-    os.rmdir(path_to_directory)
-    assert r.status_code == 403
-
-
-def test_delete_file_outside_upload_directory_403(api):
-    # Touch file
-    path_to_file = '/tmp/file_to_delete'
-    with open(path_to_file, 'w') as _:
-        pass
-
-    params = {
-        'path': path_to_file,
-        'database_id': 'database_id',
-    }
-    r = api.requests.delete(url=api.url_for(main.DeleteFile), params=params)
-    assert r.status_code == 403
-
-    # Delete file
-    os.remove(path_to_file)
-
-
-@pytest.mark.parametrize("file_path, content_type", file_pathes)
-def test_download_403(api, file_path, content_type):
-    params = {'path': file_path}
-    if content_type is not None:
-        params.update({'content_type': content_type})
-    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
-    assert r.status_code == 200
-    data = json.loads(r.text)
-    assert 'token' in data.keys()
-
-    token = data['token'] + 'aaaaaaa'
+def test_download_403(api):
+    token = 'eyJ0eXAiOiJKV1EiLCJhbGciOiJIUzI1NiJ9.aaaa.aaaa'
 
     # Get file with the token
     r = api.requests.get(url=api.url_for(main.Download, token=token))
     assert r.status_code == 403
-
-
-@pytest.mark.parametrize("file_path, content_type", file_pathes_invalid)
-def test_invalid_path(api, file_path, content_type):
-    params = {'path': file_path}
-    if content_type is not None:
-        params.update({'content_type': content_type})
-    r = api.requests.post(url=api.url_for(main.Downloads), data=params)
-    assert r.status_code == 404
