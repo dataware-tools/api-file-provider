@@ -89,9 +89,24 @@ class Downloads:
         """
         data = await req.media()
         database_id = data.get('database_id', None)
+        file_uuid = data.get('file_uuid', None)
         record_id = data.get('record_id', None)
-        path = data.get('path', None)
         content_type = data.get('content_type', None)
+
+        # Validation
+        if not file_uuid or not database_id:
+            resp.status_code = 400
+            resp.media = {
+                'detail': 'Param file_uuid and database_id must be specified.',
+            }
+            return
+
+        # Get file path (also for checking existance of the file)
+        path = _get_file_path(req, database_id, file_uuid)
+        if not path:
+            resp.status_code = 404
+            resp.media = {'detail': 'No such file'}
+            return
 
         # Check permission
         permission_client = get_check_permission_client(req)
@@ -278,22 +293,22 @@ class DeleteFile:
             *
 
         """
-        file_path = req.params.get('path', '')
         database_id = req.params.get('database_id', '')
+        file_uuid = req.params.get('file_uuid', '')
 
         # Validation
-        if not is_valid_path(file_path, check_existence=False):
-            resp.status_code = 403
+        if not file_uuid or not database_id:
+            resp.status_code = 400
             resp.media = {
-                'detail': f'Deleting ({file_path}) is forbbiden.',
+                'detail': 'Param file_uuid and database_id must be specified.',
             }
             return
 
-        if not database_id:
-            resp.status_code = 400
-            resp.media = {
-                'detail': 'Param database_id must be specified.',
-            }
+        # Get file path (also for checking existance of the file)
+        file_path = _get_file_path(req, database_id, file_uuid)
+        if not file_path:
+            resp.status_code = 404
+            resp.media = {'detail': 'No such file'}
             return
 
         # Check if path is in the UPLOADED_FILE_PATH_PREFIX directory
@@ -452,6 +467,38 @@ def _update_metastore(
         return (False, None)
 
     return (True, res)
+
+
+def _get_file_path(req: responder.Request, database_id: str, uuid: str) -> Optional[str]:
+    """Get file path based on specified database_id and file uuid.
+
+    Args:
+        req (responder.Request)
+        database_id (str)
+        uuid (str)
+
+    Returns:
+        Optional[str]
+
+    """
+    try:
+        forward_header = get_forward_headers(req)
+    except AttributeError:
+        forward_header = req.headers
+
+    try:
+        headers = {
+            'authorization': forward_header['authorization']
+        }
+    except KeyError:
+        return None
+
+    try:
+        res = requests.get(f'{META_STORE_SERVICE}/databases/{database_id}/files/{uuid}', headers=headers)
+        res_data = json.loads(res.text)
+        return res_data['path']
+    except Exception:
+        return None
 
 
 if __name__ == '__main__':
