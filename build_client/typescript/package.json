@@ -1,0 +1,44 @@
+{
+  "name": "@dataware-tools/api-file-provider-client",
+  "engines": {
+    "node": "^16.11.0",
+    "npm": "^8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dataware-tools/api-file-provider.git"
+  },
+  "exports": {
+    "node": {
+      "import": "./dist/node/index.mjs",
+      "require": "./dist/node/index.cjs"
+    },
+    "default": [
+      "./dist/browser/index.mjs"
+    ]
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "run-p build:node build:browser",
+    "build:node": "node ./build.js node && tsc --project ./tsconfig.node.json",
+    "build:browser": "node ./build.js browser && tsc --project ./tsconfig.browser.json"
+  },
+  "dependencies": {
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.41",
+    "@types/node-fetch": "^2.5.12",
+    "esbuild": "^0.13.3",
+    "npm-run-all": "^4.1.5",
+    "openapi-typescript-codegen": "^0.9.3",
+    "typescript": "^4.4.3"
+  },
+  "types": "./dist/browser/index.d.ts",
+  "volta": {
+    "node": "16.11.0"
+  }
+}

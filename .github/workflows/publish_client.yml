@@ -1,0 +1,30 @@
+name: publish client
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-client-for-typescript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+          registry-url: "https://npm.pkg.github.com"
+
+      - name: build client
+        working-directory: ./build_client/typescript
+        run: ./gen_client.sh ${SCHEMA_URL} ${EXPORTED_MODULE_NAME}
+        env:
+          SCHEMA_URL: "https://raw.githubusercontent.com/dataware-tools/protocols/master/schemas/apis/api-job-store/schema.v1.yaml"
+          EXPORTED_MODULE_NAME: "jobStore"
+
+      - name: publish to npm
+        working-directory: ./build_client/typescript
+        run: npm version ${GITHUB_REF##*/} && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

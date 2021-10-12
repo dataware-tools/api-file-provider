@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "sourceMap": true,
+    "moduleResolution": "node"
+  }
+}
