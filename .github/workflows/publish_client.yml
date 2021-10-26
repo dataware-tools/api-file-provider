@@ -20,9 +20,8 @@ jobs:
         working-directory: ./build_client/typescript
         run: ./gen_client.sh ${SCHEMA_URL} ${EXPORTED_MODULE_NAME}
         env:
-          SCHEMA_URL: "https://raw.githubusercontent.com/dataware-tools/protocols/master/schemas/apis/api-job-store/schema.v1.yaml"
-          EXPORTED_MODULE_NAME: "jobStore"
-
+          SCHEMA_URL: "https://raw.githubusercontent.com/dataware-tools/protocols/master/schemas/apis/api-file-provider/schema.v1.yaml"
+          EXPORTED_MODULE_NAME: "fileProvider"
       - name: publish to npm
         working-directory: ./build_client/typescript
         run: npm version ${GITHUB_REF##*/} && npm publish
