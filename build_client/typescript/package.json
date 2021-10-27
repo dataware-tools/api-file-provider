@@ -17,6 +17,8 @@
       "./dist/browser/index.mjs"
     ]
   },
+  "main": "./dist/node/index.cjs",
+  "browser": "./dist/browser/index.mjs",
   "files": [
     "dist"
   ],
