@@ -183,30 +183,28 @@ class Download:
             resp.media = {'detail': 'Invalid signature'}
             return
 
-        # Prepare headers
-        resp.headers['Content-Transfer-Encoding'] = 'Binary'
-        if payload.get('content_type', None) is not None:
-            resp.headers['Content-Type'] = payload.get('content_type')
-        if payload.get('path', None) is not None:
-            try:
-                filesize = os.path.getsize(payload.get('path'))
-                resp.headers['Content-Length'] = str(filesize)
-            except Exception as e:
-                print(e)
-                pass
-            resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(
-                os.path.basename(payload.get('path'))
-            )
-
-        # Check file
-        if not is_valid_path(payload.get('path'), check_existence=True):
-            resp.status_code = 404
-            resp.media = {'detail': 'No such file: {}'.format(payload.get('path'))}
-            return
+        # Check
+        if payload.get('path', None) is None:
+            raise ValueError('path not found')
 
         # Get file size
-        file_size = os.path.getsize(payload.get('path'))
+        path = payload.get('path')
+        file_size = os.path.getsize(path)
+
+        # Prepare headers
+        resp.headers['Content-Transfer-Encoding'] = 'Binary'
         resp.headers['Content-Length'] = str(file_size)
+        resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(
+            os.path.basename(path)
+        )
+        if payload.get('content_type', None) is not None:
+            resp.headers['Content-Type'] = payload.get('content_type')
+
+        # Check file
+        if not is_valid_path(path, check_existence=True):
+            resp.status_code = 404
+            resp.media = {'detail': 'No such file: {}'.format(path)}
+            return
 
         # Get range request
         asked_range = req.headers.get('Range', None)
@@ -225,7 +223,7 @@ class Download:
             resp.status_code = 206
 
         # Stream the file
-        resp.stream(_shout_stream, payload.get('path'))
+        resp.stream(_shout_stream, path)
 
 
 @api.route('/upload')

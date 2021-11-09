@@ -64,7 +64,14 @@ def test_index(api):
     assert 'jwt_payload' in data.keys()
 
 
-def assert_file_get_200(api, file_path, content_type=None):
+file_pathes = [
+    ('/opt/app/test/files/text.txt', 'text/plain'),
+    ('/opt/app/test/files/records/sample/data/records.bag', 'application/rosbag'),
+]
+
+
+@pytest.mark.parametrize("file_path, content_type", file_pathes)
+def test_file_get_200(api, file_path, content_type):
     params = {'path': file_path}
     if content_type is not None:
         params.update({'content_type': content_type})
@@ -74,17 +81,6 @@ def assert_file_get_200(api, file_path, content_type=None):
         assert r.headers['Content-Type'] == content_type
     with open(file_path, 'rb') as f:
         assert r.content == f.read()
-
-
-file_pathes = [
-    ('/opt/app/test/files/text.txt', 'text/plain'),
-    ('/opt/app/test/files/records/sample/data/records.bag', 'application/rosbag'),
-]
-
-
-@pytest.mark.parametrize("file_path, content_type", file_pathes)
-def test_file_get_200(api, file_path, content_type):
-    assert_file_get_200(api, file_path, content_type)
 
 
 @pytest.mark.parametrize("file_path, content_type", file_pathes)
