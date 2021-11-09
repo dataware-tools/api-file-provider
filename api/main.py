@@ -43,12 +43,25 @@ api = responder.API(
     cors=True,
     cors_params={
         'allow_origins': ['*'],
-        'allow_methods': ['*']
+        'allow_methods': ['*'],
+        'allow_headers': ['*'],
+        'expose_headers': ['ETag', 'Content-Type', 'Accept-Ranges', 'Content-Length']
     },
     secret_key=os.environ.get('SECRET_KEY', os.urandom(12))
 )
 catalogs = {}
 debug = os.environ.get('API_DEBUG', '') in ['true', 'True', 'TRUE', '1']
+
+# Disable GZIP to make sure that 'Content-Length' appears in response headers
+_app = api
+while True:
+    if hasattr(_app, 'app'):
+        if type(_app.app).__name__ == 'GZipMiddleware':
+            _app.app = _app.app.app
+            break
+        _app = getattr(_app, 'app')
+    else:
+        break
 
 
 @api.route('/')
@@ -183,29 +196,49 @@ class Download:
             resp.media = {'detail': 'Invalid signature'}
             return
 
+        # Check
+        if payload.get('path', None) is None:
+            raise ValueError('path not found')
+
+        # Get file size
+        path = payload.get('path')
+        file_size = os.path.getsize(path)
+
         # Prepare headers
         resp.headers['Content-Transfer-Encoding'] = 'Binary'
+        resp.headers['Content-Length'] = str(file_size)
+        resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(
+            os.path.basename(path)
+        )
         if payload.get('content_type', None) is not None:
             resp.headers['Content-Type'] = payload.get('content_type')
-        if payload.get('path', None) is not None:
-            try:
-                filesize = os.path.getsize(payload.get('path'))
-                resp.headers['Content-Length'] = str(filesize)
-            except Exception as e:
-                print(e)
-                pass
-            resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(
-                os.path.basename(payload.get('path'))
-            )
 
         # Check file
-        if not is_valid_path(payload.get('path'), check_existence=True):
+        if not is_valid_path(path, check_existence=True):
             resp.status_code = 404
-            resp.media = {'detail': 'No such file: {}'.format(payload.get('path'))}
+            resp.media = {'detail': 'No such file: {}'.format(path)}
             return
 
+        # Get range request
+        asked_range = req.headers.get('Range', None)
+        try:
+            bytes_to_start = int(asked_range.split('=')[1].split('-')[0])
+            bytes_to_end = min(int(asked_range.split('=')[1].split('-')[1]), file_size - 1)
+            size = bytes_to_end - bytes_to_start + 1
+        except (AttributeError, ValueError):
+            bytes_to_start = 0
+            bytes_to_end = file_size - 1
+            size = file_size
+
+        # Set headers for range request
+        resp.headers['Accept-Ranges'] = 'bytes'
+        if asked_range is not None:
+            resp.headers['Content-Range'] = f'bytes {bytes_to_start}-{bytes_to_end}/{file_size}'
+            resp.headers['Content-Length'] = str(size)
+            resp.status_code = 206
+
         # Stream the file
-        resp.stream(_shout_stream, payload.get('path'))
+        resp.stream(_shout_stream, path, start=bytes_to_start, size=size)
 
 
 @api.route('/upload')
@@ -386,14 +419,40 @@ async def get_file(req, resp):
         resp.media = {'detail': 'No such file'}
         return
 
-    resp.stream(_shout_stream, path)
+    # Get file size
+    file_size = os.path.getsize(path)
+    resp.headers['Content-Length'] = str(file_size)
+
+    # Get range request
+    asked_range = req.headers.get('Range', None)
+    try:
+        bytes_to_start = int(asked_range.split('=')[1].split('-')[0])
+        bytes_to_end = min(int(asked_range.split('=')[1].split('-')[1]), file_size - 1)
+        size = bytes_to_end - bytes_to_start + 1
+    except (AttributeError, ValueError):
+        bytes_to_start = 0
+        bytes_to_end = file_size - 1
+        size = file_size
+
+    # Set headers for range request
+    resp.headers['Accept-Ranges'] = 'bytes'
+    if asked_range is not None:
+        resp.headers['Content-Range'] = f'bytes {bytes_to_start}-{bytes_to_end}/{file_size}'
+        resp.headers['Content-Length'] = str(size)
+        resp.status_code = 206
+
+    resp.stream(_shout_stream, path, start=bytes_to_start, size=size)
 
 
-async def _shout_stream(filepath, chunk_size=8192):
+async def _shout_stream(filepath, chunk_size=8192, start=0, size=None):
     async with aiofiles.open(filepath, 'rb') as f:
-        while True:
-            buffer = await f.read(chunk_size)
+        bytes_read = 0
+        await f.seek(start)
+        while size is None or bytes_read < size:
+            bytes_to_read = min(chunk_size, size - bytes_read) if size is not None else chunk_size
+            buffer = await f.read(bytes_to_read)
             if buffer:
+                bytes_read += len(buffer)
                 yield buffer
             else:
                 break
