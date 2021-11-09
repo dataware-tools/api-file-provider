@@ -87,6 +87,22 @@ def test_file_get_200(api, file_path, content_type):
     assert_file_get_200(api, file_path, content_type)
 
 
+@pytest.mark.parametrize("file_path, content_type", file_pathes)
+def test_file_get_with_range_206(api, file_path, content_type):
+    params = {'path': file_path}
+    headers = {'Range': 'bytes=0-1048575'}
+    if content_type is not None:
+        params.update({'content_type': content_type})
+    r = api.requests.get(url=api.url_for(main.get_file), params=params, headers=headers)
+    assert r.status_code == 206
+    assert r.headers.get('accept-ranges') == 'bytes'
+    assert r.headers.get('content-range').startswith('bytes 0-')
+    if content_type is not None:
+        assert r.headers['Content-Type'] == content_type
+    with open(file_path, 'rb') as f:
+        assert r.content == f.read()
+
+
 def test_file_get_404(api):
     r = api.requests.get(url=api.url_for(main.get_file),
                          params={'path': 'a-file-that-does-not-exist'})

@@ -204,6 +204,24 @@ class Download:
             resp.media = {'detail': 'No such file: {}'.format(payload.get('path'))}
             return
 
+        # Get file size
+        file_size = os.path.getsize(payload.get('path'))
+
+        # Get range request
+        asked_range = req.headers.get('Range', None)
+        try:
+            bytes_to_start = int(asked_range.split('=')[1].split('-')[0])
+            bytes_to_end = min(int(asked_range.split('=')[1].split('-')[1]), file_size)
+        except (AttributeError, ValueError):
+            bytes_to_start = 0
+            bytes_to_end = file_size
+
+        # Set headers for range request
+        resp.headers['Accept-Ranges'] = 'bytes'
+        if asked_range is not None:
+            resp.headers['Content-Range'] = f'bytes {bytes_to_start}-{bytes_to_end}/{file_size}'
+            resp.status_code = 206
+
         # Stream the file
         resp.stream(_shout_stream, payload.get('path'))
 
@@ -386,14 +404,36 @@ async def get_file(req, resp):
         resp.media = {'detail': 'No such file'}
         return
 
+    # Get file size
+    file_size = os.path.getsize(path)
+
+    # Get range request
+    asked_range = req.headers.get('Range', None)
+    try:
+        bytes_to_start = int(asked_range.split('=')[1].split('-')[0])
+        bytes_to_end = min(int(asked_range.split('=')[1].split('-')[1]), file_size)
+    except (AttributeError, ValueError):
+        bytes_to_start = 0
+        bytes_to_end = file_size
+
+    # Set headers for range request
+    resp.headers['Accept-Ranges'] = 'bytes'
+    if asked_range is not None:
+        resp.headers['Content-Range'] = f'bytes {bytes_to_start}-{bytes_to_end}/{file_size}'
+        resp.status_code = 206
+
     resp.stream(_shout_stream, path)
 
 
-async def _shout_stream(filepath, chunk_size=8192):
+async def _shout_stream(filepath, chunk_size=8192, start=0, size=None):
     async with aiofiles.open(filepath, 'rb') as f:
-        while True:
-            buffer = await f.read(chunk_size)
+        bytes_read = 0
+        await f.seek(start)
+        while size is None or bytes_read < size:
+            bytes_to_read = min(chunk_size, size - bytes_read) if size is not None else chunk_size
+            buffer = await f.read(bytes_to_read)
             if buffer:
+                bytes_read += min(bytes_to_read, len(buffer))
                 yield buffer
             else:
                 break
