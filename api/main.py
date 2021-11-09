@@ -206,20 +206,22 @@ class Download:
 
         # Get file size
         file_size = os.path.getsize(payload.get('path'))
+        resp.headers['Content-Length'] = str(file_size)
 
         # Get range request
         asked_range = req.headers.get('Range', None)
         try:
             bytes_to_start = int(asked_range.split('=')[1].split('-')[0])
-            bytes_to_end = min(int(asked_range.split('=')[1].split('-')[1]), file_size)
+            bytes_to_end = min(int(asked_range.split('=')[1].split('-')[1]), file_size - 1)
         except (AttributeError, ValueError):
             bytes_to_start = 0
-            bytes_to_end = file_size
+            bytes_to_end = file_size - 1
 
         # Set headers for range request
         resp.headers['Accept-Ranges'] = 'bytes'
         if asked_range is not None:
             resp.headers['Content-Range'] = f'bytes {bytes_to_start}-{bytes_to_end}/{file_size}'
+            resp.headers['Content-Length'] = str(bytes_to_end - bytes_to_start + 1)
             resp.status_code = 206
 
         # Stream the file
@@ -406,20 +408,22 @@ async def get_file(req, resp):
 
     # Get file size
     file_size = os.path.getsize(path)
+    resp.headers['Content-Length'] = str(file_size)
 
     # Get range request
     asked_range = req.headers.get('Range', None)
     try:
         bytes_to_start = int(asked_range.split('=')[1].split('-')[0])
-        bytes_to_end = min(int(asked_range.split('=')[1].split('-')[1]), file_size)
+        bytes_to_end = min(int(asked_range.split('=')[1].split('-')[1]), file_size - 1)
     except (AttributeError, ValueError):
         bytes_to_start = 0
-        bytes_to_end = file_size
+        bytes_to_end = file_size - 1
 
     # Set headers for range request
     resp.headers['Accept-Ranges'] = 'bytes'
     if asked_range is not None:
         resp.headers['Content-Range'] = f'bytes {bytes_to_start}-{bytes_to_end}/{file_size}'
+        resp.headers['Content-Length'] = str(bytes_to_end - bytes_to_start + 1)
         resp.status_code = 206
 
     resp.stream(_shout_stream, path)
