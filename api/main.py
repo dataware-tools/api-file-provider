@@ -43,12 +43,25 @@ api = responder.API(
     cors=True,
     cors_params={
         'allow_origins': ['*'],
-        'allow_methods': ['*']
+        'allow_methods': ['*'],
+        'allow_headers': ['*'],
+        'expose_headers': ['ETag', 'Content-Type', 'Accept-Ranges', 'Content-Length']
     },
     secret_key=os.environ.get('SECRET_KEY', os.urandom(12))
 )
 catalogs = {}
 debug = os.environ.get('API_DEBUG', '') in ['true', 'True', 'TRUE', '1']
+
+# Disable GZIP to make sure that 'Content-Length' appears in response headers
+_app = api
+while True:
+    if hasattr(_app, 'app'):
+        if type(_app.app).__name__ == 'GZipMiddleware':
+            _app.app = _app.app.app
+            break
+        _app = getattr(_app, 'app')
+    else:
+        break
 
 
 @api.route('/')
