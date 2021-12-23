@@ -515,7 +515,6 @@ def _update_metastore(
         return (False, None)
     request_data = {
         'record_id': record_id,
-        'database_id': database_id,
         'path': save_file_path,
         **file_metadata
     }
