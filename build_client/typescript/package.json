@@ -13,6 +13,10 @@
       "import": "./dist/node/index.mjs",
       "require": "./dist/node/index.cjs"
     },
+    "browser": {
+      "import": "./dist/browser/index.mjs",
+      "require": "./dist/browser/index.cjs"
+    },
     "default": [
       "./dist/browser/index.mjs"
     ]
