@@ -13,6 +13,7 @@ import jwt
 import requests
 import responder
 from dataware_tools_api_helper import get_forward_headers, get_jwt_payload_from_request
+import urllib.parse
 
 from api.settings import META_STORE_SERVICE, UPLOADED_FILE_PATH_PREFIX
 from api.utils import get_valid_filename, is_file_in_directory, is_valid_path, get_jwt_key, get_check_permission_client
@@ -205,11 +206,10 @@ class Download:
         file_size = os.path.getsize(path)
 
         # Prepare headers
+        filename=urllib.parse.quote(os.path.basename(path))
         resp.headers['Content-Transfer-Encoding'] = 'Binary'
         resp.headers['Content-Length'] = str(file_size)
-        resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(
-            os.path.basename(path)
-        )
+        resp.headers['Content-Disposition'] = "attachment;  filename='{}'; filename*=UTF-8''{}".format(filename, filename)
         if payload.get('content_type', None) is not None:
             resp.headers['Content-Type'] = payload.get('content_type')
 
