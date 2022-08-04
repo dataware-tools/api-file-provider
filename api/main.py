@@ -206,10 +206,12 @@ class Download:
         file_size = os.path.getsize(path)
 
         # Prepare headers
-        filename=urllib.parse.quote(os.path.basename(path))
+        filename = urllib.parse.quote(os.path.basename(path))
         resp.headers['Content-Transfer-Encoding'] = 'Binary'
         resp.headers['Content-Length'] = str(file_size)
-        resp.headers['Content-Disposition'] = "attachment;  filename='{}'; filename*=UTF-8''{}".format(filename, filename)
+        resp.headers['Content-Disposition'] = "attachment;  filename='{}'; filename*=UTF-8''{}".format(
+            filename, filename
+        )
         if payload.get('content_type', None) is not None:
             resp.headers['Content-Type'] = payload.get('content_type')
 
