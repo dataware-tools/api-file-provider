@@ -22,7 +22,6 @@ RUN mkdir -p /opt/app
 COPY pyproject.toml poetry.loc[k] /opt/app/
 WORKDIR /opt/app
 RUN poetry install || poetry update
-RUN poetry run pip install "typesystem==0.2.5"
 
 # Get catalogs
 RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
