@@ -28,6 +28,7 @@ dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helpe
 responder = "^2.0.5"
 PyJWT = "^1.7.1"
 aiofiles = "^0.7.0"
+typesystem = "0.2.5"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"

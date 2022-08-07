@@ -14,4 +14,4 @@ API_META_STORE_SERVICE_PORT = os.environ.get('API_META_STORE_SERVICE_PORT')
 if API_META_STORE_SERVICE_HOST and API_META_STORE_SERVICE_PORT:
     META_STORE_SERVICE = f'http://{API_META_STORE_SERVICE_HOST}:{API_META_STORE_SERVICE_PORT}'
 else:
-    META_STORE_SERVICE = 'https://demo.dataware-tools.com/api/latest/meta_store'
+    META_STORE_SERVICE = os.environ.get('META_STORE_SERVICE', 'https://demo.dataware-tools.com/api/latest/meta_store')

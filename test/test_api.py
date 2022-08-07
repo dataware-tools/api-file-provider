@@ -134,7 +134,7 @@ def test_upload_and_download_properly(api, setup_metastore_data):
     file_path = 'test/files/text.txt'
     file_metadata = {"description": "test in api-file-provider"}
     files = {
-        'file': ('test.txt', open(file_path, 'rb'), 'anything'),
+        'file': ('test１あ.txt', open(file_path, 'rb'), 'anything'),
         'metadata': (None, json.dumps(file_metadata), 'application/json'),
     }
     url = api.url_for(main.Upload)
@@ -172,7 +172,7 @@ def test_upload_409_duplicated_file(api, setup_metastore_data):
     file_path = 'test/files/text.txt'
     file_metadata = {}
     files = {
-        'file': ('test.txt', open(file_path, 'rb'), 'anything'),
+        'file': ('test１あ.txt', open(file_path, 'rb'), 'anything'),
         'contents': (None, json.dumps(file_metadata), 'application/json'),
     }
     url = api.url_for(main.Upload)
@@ -203,7 +203,7 @@ def test_upload_201_metadata_updated_properly(api, setup_metastore_data):
         'file_medadata_list': [1, 2, 3],
     }
     files = {
-        'file': ('test.txt', open(file_path, 'rb'), 'anything'),
+        'file': ('test１あ.txt', open(file_path, 'rb'), 'anything'),
         # Add json file for metadata contents
         # Reference:
         # - https://stackoverflow.com/a/35940980
@@ -246,7 +246,7 @@ def test_delete_file_200(api, setup_metastore_data):
     file_path = 'test/files/text.txt'
     file_metadata = {}
     files = {
-        'file': ('test.txt', open(file_path, 'rb'), 'anything'),
+        'file': ('test１あ.txt', open(file_path, 'rb'), 'anything'),
         'contents': (None, json.dumps(file_metadata), 'application/json'),
     }
     record_id = setup_metastore_data['record_id']
